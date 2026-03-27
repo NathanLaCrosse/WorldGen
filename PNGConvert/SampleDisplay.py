@@ -42,6 +42,6 @@ def sampleTiles(tiles):
         x += 2
         y += 1
 
-        if (i == 4):
-            y = -3
+        if (i % 8 == 7):
+            y += -3
             x = 0
