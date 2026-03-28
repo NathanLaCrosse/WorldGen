@@ -21,7 +21,7 @@ app = Ursina()
 #This is where I would put the main wave function call
 
 # Create test
-tiles, weights = imageLoad("PNGConvert/Mount.png",False)
+tiles, weights = imageLoad("PNGConvert/4Color.png",False)
 
 #sampleTiles(tiles)
 
@@ -30,13 +30,15 @@ tiles, weights = imageLoad("PNGConvert/Mount.png",False)
 tile_hashes, hash_to_tile, hash_to_weight, adjacencies, color_to_index, index_to_color = waveStart(tiles, weights)
 
 # Create cell grid for generation
-grid_size = 12
+grid_size = 20
+
+
 cell_space = [
     [Cell(i, j, tile_hashes, hash_to_weight, adjacencies) for j in range(grid_size-1)]
     for i in range(grid_size-1)
 ]
 
-collapse_grid(cell_space, 0, 0)
+collapse_grid(cell_space, 0, 0,grid_size)
 
 
 #use ursina to display world

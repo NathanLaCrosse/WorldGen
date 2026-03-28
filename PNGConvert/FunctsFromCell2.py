@@ -138,7 +138,7 @@ class Cell:
         
 
 
-def is_all_collapsed(cell_space):
+def is_all_collapsed(cell_space,grid_size):
     for i in range(grid_size-1):
         for j in range(grid_size-1):
             if cell_space[i][j].state == -1:
@@ -146,12 +146,11 @@ def is_all_collapsed(cell_space):
     
     return True
 
-grid_size = 12
 
-def collapse_grid(cell_space, row, col):
+def collapse_grid(cell_space, row, col, grid_size):
     cell = cell_space[row][col]
 
-    if is_all_collapsed(cell_space):
+    if is_all_collapsed(cell_space,grid_size):
         return True
     elif len(cell.superposition) == 0:
         return False
@@ -188,7 +187,7 @@ def collapse_grid(cell_space, row, col):
             # Choose the cell with minimum entropy
             new_row, new_col = np.unravel_index(np.argmin(entropy_grid), entropy_grid.shape)
             
-            result = collapse_grid(cell_space, new_row, new_col)
+            result = collapse_grid(cell_space, new_row, new_col, grid_size)
 
             if result:
                 return True
