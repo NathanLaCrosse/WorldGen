@@ -1,3 +1,12 @@
+"""----------------------------------------------------------------
+
+THIS IS TEMPORARY, mainly needed to adjust a few things so that the 
+cell could handle some inputs as well as a few other dependacies. 
+
+Will remove/change once Cell2 is modified
+
+----------------------------------------------------------------"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 

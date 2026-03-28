@@ -1,3 +1,19 @@
+"""----------------------------------------------------------------
+
+This is our main wave function handler
+
+Has hash table lookups, and builders for the use later on. 
+re-indexes the colors and determines adjacency rules
+
+Dylan Dudley - 03/28/2026
+
+----------------------------------------------------------------"""
+
+
+from FunctsFromCell2 import Cell, collapse_grid
+from WorldGrid import build_world_grid
+from SampleDisplay import waveDisplay
+
 
 #TODO NEED TO KEEP TRACK OF HOW MANY COLORS
 # Note THIS IS TEMP, can change the one in CELL so it can be callable for these types of functions
@@ -16,7 +32,30 @@ def build_tile_lookup(tiles, weights):
 
     return hash_to_tile, hash_to_weight
 
+
 # main handler
+def WaveFunc(tiles, weights, grid_size):
+
+    # Here we are going to start conversion to run WVC
+    tile_hashes, hash_to_tile, hash_to_weight, adjacencies, color_to_index, index_to_color = waveStart(tiles, weights)
+
+    # Create cell grid for generation
+    
+    cell_space = [
+        [Cell(i, j, tile_hashes, hash_to_weight, adjacencies) for j in range(grid_size-1)]
+        for i in range(grid_size-1)
+    ]
+
+    collapse_grid(cell_space, 0, 0,grid_size)
+
+
+    #use ursina to display world
+    world_grid = build_world_grid(cell_space, hash_to_tile)
+    world_grid = world_grid.astype(int)
+
+    waveDisplay(world_grid,grid_size,index_to_color)
+
+
 def waveStart(tiles, weights):
     colors = []
     color_to_index = {}
