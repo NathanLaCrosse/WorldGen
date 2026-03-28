@@ -45,3 +45,26 @@ def sampleTiles(tiles):
         if (i % 8 == 7):
             y += -3
             x = 0
+
+def waveDisplay(world_grid,grid_size,index_to_color):
+    x,y,z = 0, 0, 0 
+    
+    for i in range(grid_size-1):
+        for j in range(grid_size-1):
+            # Gets the tile color
+            colors = index_to_color[world_grid[i][j]]
+
+            r_norm = colors[0] / 255
+            g_norm = colors[1] / 255
+            b_norm = colors[2] / 255
+
+            tile_color = color.rgb(r_norm, g_norm, b_norm)  # Convert to color
+
+            # Create a 2x2x1 cube
+            create_block(
+                position=(x,y,z),
+                color=tile_color
+            )
+            x += 1
+        y -= 1
+        x = 0

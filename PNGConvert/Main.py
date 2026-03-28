@@ -10,24 +10,47 @@ Dylan Dudley - 03/27/2026
 
 from ursina import *
 from ImagePNG import imageLoad 
-from SampleDisplay import sampleTiles
+from SampleDisplay import sampleTiles, waveDisplay
+from WaveFunc import waveStart
+from FunctsFromCell2 import Cell, collapse_grid
+from WorldGrid import build_world_grid
+import numpy as np
 
 app = Ursina()
 
 #This is where I would put the main wave function call
 
 # Create test
-tiles, weights = imageLoad("PNGConvert/4Color.png",False)
+tiles, weights = imageLoad("PNGConvert/Mount.png",False)
 
-sampleTiles(tiles)
+#sampleTiles(tiles)
 
+
+# Here we are going to start conversion to run WVC
+tile_hashes, hash_to_tile, hash_to_weight, adjacencies, color_to_index, index_to_color = waveStart(tiles, weights)
+
+# Create cell grid for generation
+grid_size = 12
+cell_space = [
+    [Cell(i, j, tile_hashes, hash_to_weight, adjacencies) for j in range(grid_size-1)]
+    for i in range(grid_size-1)
+]
+
+collapse_grid(cell_space, 0, 0)
+
+
+#use ursina to display world
+world_grid = build_world_grid(cell_space, hash_to_tile)
+world_grid = world_grid.astype(int)
+
+waveDisplay(world_grid,grid_size,index_to_color)
 
 # Lighting
 DirectionalLight().look_at(Vec3(1, -1, -1))
 AmbientLight(color=color.rgba(100, 100, 100, 0.5))
 
 # Camera
-camera.position = (0, 2, -8)
+camera.position = (5, -5, -40)
 mouse.locked = True
 
 def input(key):
