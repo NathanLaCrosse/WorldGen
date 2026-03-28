@@ -17,7 +17,7 @@ app = Ursina()
 #This is where I would put the main wave function call
 
 # Create test
-tiles, weights = imageLoad("PNGConvert/Mount.png")
+tiles, weights = imageLoad("PNGConvert/4Color.png")
 
 sampleTiles(tiles)
 
