@@ -30,6 +30,8 @@ def uniqueTile(targetTile, tiles, Weight,rotate):
             ]
         else:
             rotations = [tile]
+
+        # Checks if target tile is same as the rotated tile
         for j in range(len(rotations)):
             if rotations[j] == targetTile:
                 #Already exists
@@ -66,43 +68,46 @@ def extract_tiles(img,rotate):
                 tiles.append(tile)
                 Weights.append(1)
                 #When we can rotate tiles
-                if(rotate):
-                    rotateTile(tile, rotations, Weights)
 
     #For the rotations
-    for i in range(len(rotations)):
-        tiles.append(rotations[i])
+    if(rotate):
+        #To rotate tiles and add weights accordingly
+        rotateTile(tiles, Weights)
 
     return tiles, Weights
 
 # Used to rotate tiles for all orientations
-def rotateTile(tile, rotations, Weights):
-    x,y,z,t = 2,0,3,1
-    temp = 0  
+def rotateTile(tiles, Weights):
+    tileLength = len(tiles)
+    for i in range(tileLength):
+        tile = tiles[i]
+        x,y,z,t = 2,0,3,1
+        temp = 0  
 
-    #This is to check if all tiles are the same (Like all blue)
-    if len(set(tile)) == 1:
-        return
+        #This is to check if all tiles are the same (Like all blue) by removing duplicates
+        if len(set(tile)) == 1:
+            continue
 
-    for j in range(3):
+        for j in range(3):
 
-        tile = [
-                tile[x],       # top-left
-                tile[y],       # top-right
-                tile[z],       # bottom-left
-                tile[t]        # bottom-right
-            ]
-            
-        # This is our rotation
-        temp = x
-        x = z
-        z = t
-        t = y
-        y = temp
+            tile = [
+                    tile[x],       # top-left
+                    tile[y],       # top-right
+                    tile[z],       # bottom-left
+                    tile[t]        # bottom-right
+                ]
+                
+            # This is our rotation
+            temp = x
+            x = z
+            z = t
+            t = y
+            y = temp
 
-        rotations.append(tile)
+            tiles.append(tile)
+            Weights.append(Weights[i])
 
-    return
+    return 
 
 def imageLoad(path,rotate):
     img = load_image(path)

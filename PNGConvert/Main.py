@@ -23,11 +23,11 @@ app = Ursina()
 # Create test
 tiles, weights = imageLoad("PNGConvert/4Color.png",False)
 
-
-
 #sampleTiles(tiles)
 
-WaveFunc(tiles, weights, grid_size=12)
+# 32 is current max
+grid_size = 20
+WaveFunc(tiles, weights, grid_size)
 
 
 
@@ -37,7 +37,7 @@ DirectionalLight().look_at(Vec3(1, -1, -1))
 AmbientLight(color=color.rgba(100, 100, 100, 0.5))
 
 # Camera
-camera.position = (5, -5, -40)
+camera.position = (5, -5, -(2*grid_size))
 mouse.locked = True
 
 def input(key):
