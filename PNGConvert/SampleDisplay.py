@@ -46,6 +46,7 @@ def sampleTiles(tiles):
             y += -3
             x = 0
 
+# Replaced by mesh. Keeping for reference if needed
 def waveDisplay(world_grid,grid_size,index_to_color):
     x,y,z = 0, 0, 0 
     

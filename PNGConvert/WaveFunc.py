@@ -13,10 +13,9 @@ Dylan Dudley - 03/28/2026
 from FunctsFromCell2 import Cell, collapse_grid
 from WorldGrid import build_world_grid
 from SampleDisplay import waveDisplay
+from MeshGrid import startMesh
 
-
-#TODO NEED TO KEEP TRACK OF HOW MANY COLORS
-# Note THIS IS TEMP, can change the one in CELL so it can be callable for these types of functions
+# Hash based on number of colors
 def hash_tile(tile,numColors):
     return tile[0] + (numColors)*tile[1] + (numColors**2)*tile[2] + (numColors**3)*tile[3]
 
@@ -56,14 +55,18 @@ def WaveFunc(tiles, weights, grid_size):
     ]
 
     collapse_grid(cell_space, 0, 0,grid_size)
-
+  
     #use ursina to display world
     world_grid = build_world_grid(cell_space, hash_to_tile)
     world_grid = world_grid.astype(int)
 
+    # Now create a mesh to display everything
+    startMesh(world_grid, grid_size, index_to_color)
 
+    # Old display
+    #waveDisplay(world_grid,grid_size,index_to_color)
 
-    waveDisplay(world_grid,grid_size,index_to_color)
+    return 
 
 def waveStart(tiles, weights):
     colors = []
@@ -92,7 +95,6 @@ def waveStart(tiles, weights):
     
     # Gather unique colors
     numColors = unique_colors(tiles)
-    print("\n\n",numColors,"\n\n")
 
     # Hash the tiles 
     tile_hashes = [hash_tile(tile, numColors) for tile in colors]

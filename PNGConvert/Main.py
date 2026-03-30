@@ -12,20 +12,21 @@ from ursina import *
 from ImagePNG import imageLoad 
 from SampleDisplay import sampleTiles
 from WaveFunc import WaveFunc 
-from WorldGrid import build_world_grid
+from MeshGrid import startMesh
+
 import numpy as np
 
 #This is where I would put the main wave function call
 
 # Create test
-tiles, weights = imageLoad("PNGConvert/images/BiggerCity.png",False)
+tiles, weights = imageLoad("PNGConvert/images/4Color.png",True)
 
 app = Ursina()
 
 #sampleTiles(tiles)
 
 # 32 is current max
-grid_size = 32
+grid_size = 20
 WaveFunc(tiles, weights, grid_size)
 
 
@@ -35,7 +36,7 @@ DirectionalLight().look_at(Vec3(1, -1, -1))
 AmbientLight(color=color.rgba(100, 100, 100, 0.5))
 
 # Camera
-camera.position = (grid_size/2, -grid_size/2, -(2*grid_size))
+camera.position = (grid_size/2, grid_size/2, -(2*grid_size))
 mouse.locked = True
 
 def input(key):

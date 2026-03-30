@@ -10,33 +10,6 @@ Will remove/change once Cell2 is modified
 import numpy as np
 import matplotlib.pyplot as plt
 
-# def hash_tile(tile):
-#     return int(tile[0,0] + 4 * tile[0, 1] + 16 * tile[1, 0] + 64 * tile[1,1])
-
-
-# def adjacencies():
-#     # Now let's make adjacency rules!
-#     # Each adjacency is designated by a (tile hash, direction) key
-#     # So (850, 'tr') stores pieces that can connect with the top right of 850
-#     directions =     ['t',  'tr', 'tl', 'r', 'l',    'b', 'br', 'bl']
-#     t1_comparisons = [[0,1], [1], [0], [1,3], [0,2], [2,3], [3], [2]]
-#     t2_comparisons = [[2,3], [2], [3], [0,2], [1,3], [0,1], [0], [1]]
-#     adjacencies = {}
-
-#     for t in tile_set.keys():
-#         # t is the current tile to compute adjacencies for
-#         # adjacencies[(t, 't')] = []
-#         for d in range(len(directions)):
-#             adjacencies[(t, directions[d])] = []
-
-#         for target in tile_set.keys():
-#             if t == target:
-#                 continue # Avoid checking adjacencies against yourself
-
-#             for d in range(len(directions)):
-#                 if compare_hashes(t, target, t1_comparisons[d], t2_comparisons[d]) and target not in adjacencies[(t, directions[d])]:
-#                     adjacencies[(t, directions[d])].append(target)
-
 # Bad intersection code for temporary work...
 def intersect(a1, a2):
     dest = []
