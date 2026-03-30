@@ -17,21 +17,30 @@ from SampleDisplay import waveDisplay
 
 #TODO NEED TO KEEP TRACK OF HOW MANY COLORS
 # Note THIS IS TEMP, can change the one in CELL so it can be callable for these types of functions
-def hash_tile(tile):
-    return tile[0] + 4*tile[1] + 16*tile[2] + 64*tile[3]
+def hash_tile(tile,numColors):
+    return tile[0] + (numColors)*tile[1] + (numColors**2)*tile[2] + (numColors**3)*tile[3]
 
 # To create a table that has the tiles and weights
-def build_tile_lookup(tiles, weights):
+def build_tile_lookup(tiles, weights, colors):
     hash_to_tile = {}
     hash_to_weight = {}
 
     for i in range(len(tiles)):
-        h = hash_tile(tiles[i])
+        h = hash_tile(tiles[i],colors)
         hash_to_tile[h] = tiles[i]
         hash_to_weight[h] = weights[i]
 
     return hash_to_tile, hash_to_weight
 
+# This should get each unique color from within our tileset
+def unique_colors(tiles):
+    color_set = set()
+
+    for tile in tiles:
+        for color in tile:
+            color_set.add(color)
+    
+    return len(color_set)
 
 # main handler
 def WaveFunc(tiles, weights, grid_size):
@@ -48,13 +57,13 @@ def WaveFunc(tiles, weights, grid_size):
 
     collapse_grid(cell_space, 0, 0,grid_size)
 
-
     #use ursina to display world
     world_grid = build_world_grid(cell_space, hash_to_tile)
     world_grid = world_grid.astype(int)
 
-    waveDisplay(world_grid,grid_size,index_to_color)
 
+
+    waveDisplay(world_grid,grid_size,index_to_color)
 
 def waveStart(tiles, weights):
     colors = []
@@ -81,9 +90,13 @@ def waveStart(tiles, weights):
                         get_color_index(tiles[i][3])         # bottom-right
                         ])
     
+    # Gather unique colors
+    numColors = unique_colors(tiles)
+    print("\n\n",numColors,"\n\n")
+
     # Hash the tiles 
-    tile_hashes = [hash_tile(tile) for tile in colors]
-    hash_to_tile, hash_to_weight = build_tile_lookup(colors, weights)
+    tile_hashes = [hash_tile(tile, numColors) for tile in colors]
+    hash_to_tile, hash_to_weight = build_tile_lookup(colors, weights, numColors)
 
     # Directions for adjacency (must match Cell class)
     directions = ['t', 'tr', 'tl', 'r', 'l', 'b', 'br', 'bl']

@@ -12,23 +12,21 @@ from ursina import *
 from ImagePNG import imageLoad 
 from SampleDisplay import sampleTiles
 from WaveFunc import WaveFunc 
-from FunctsFromCell2 import Cell, collapse_grid
 from WorldGrid import build_world_grid
 import numpy as np
-
-app = Ursina()
 
 #This is where I would put the main wave function call
 
 # Create test
-tiles, weights = imageLoad("PNGConvert/4Color.png",False)
+tiles, weights = imageLoad("PNGConvert/images/City.png",False)
+
+app = Ursina()
 
 #sampleTiles(tiles)
 
 # 32 is current max
 grid_size = 20
 WaveFunc(tiles, weights, grid_size)
-
 
 
 
