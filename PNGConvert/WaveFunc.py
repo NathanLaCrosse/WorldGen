@@ -55,16 +55,17 @@ def WaveFunc(tiles, weights, grid_size):
     ]
 
     collapse_grid(cell_space, 0, 0,grid_size)
-  
+    
     #use ursina to display world
     world_grid = build_world_grid(cell_space, hash_to_tile)
     world_grid = world_grid.astype(int)
+    print("\n\n")
 
     # Now create a mesh to display everything
     startMesh(world_grid, grid_size, index_to_color)
 
     # Old display
-    #waveDisplay(world_grid,grid_size,index_to_color)
+    # waveDisplay(world_grid,grid_size,index_to_color)
 
     return 
 

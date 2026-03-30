@@ -24,8 +24,8 @@ def build_world_grid(cell_space, hash_to_tile, grid_n=2):
     num_cells_row = len(cell_space)
     num_cells_col = len(cell_space[0])
     
-    world_rows = num_cells_row * grid_n
-    world_cols = num_cells_col * grid_n
+    world_rows = num_cells_row + (grid_n - 1)
+    world_cols = num_cells_col + (grid_n - 1)
     
     world_grid = np.zeros((world_rows, world_cols), dtype=int)
     
@@ -35,9 +35,9 @@ def build_world_grid(cell_space, hash_to_tile, grid_n=2):
             
             for dx in range(grid_n):
                 for dz in range(grid_n):
-                    world_row = i*grid_n + dz
-                    world_col = j*grid_n + dx
-                    idx = dz*grid_n + dx
+                    world_row = i + dz
+                    world_col = j + dx
+                    idx = dz * grid_n + dx
                     world_grid[world_row, world_col] = tile[idx]
     
     return world_grid

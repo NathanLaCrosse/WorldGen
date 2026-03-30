@@ -19,7 +19,7 @@ import numpy as np
 #This is where I would put the main wave function call
 
 # Create test
-tiles, weights = imageLoad("PNGConvert/images/4Color.png",True)
+tiles, weights = imageLoad("PNGConvert/images/RedDot.png",True)
 
 app = Ursina()
 

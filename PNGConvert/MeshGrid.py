@@ -16,8 +16,11 @@ def create_mesh(world_grid, grid_size, index_to_color, tile_size=1):
     triangles = []
     colors = []
 
-    for y in range(grid_size):
-        for x in range(grid_size):
+    # Use actual world_grid size (overlapping)
+    rows, cols = world_grid.shape  
+
+    for y in range(rows):
+        for x in range(cols):
             quad_tile = [
                 Vec3(x * tile_size, y * tile_size, -10),
                 Vec3((x+1) * tile_size, y * tile_size, -10),

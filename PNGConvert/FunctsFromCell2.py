@@ -9,6 +9,8 @@ Will remove/change once Cell2 is modified
 
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
+sys.setrecursionlimit(10000)  # default is usually 1000
 
 # Bad intersection code for temporary work...
 def intersect(a1, a2):
