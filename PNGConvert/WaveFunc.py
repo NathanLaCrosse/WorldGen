@@ -15,7 +15,11 @@ from WorldGrid import build_world_grid
 from SampleDisplay import waveDisplay
 from MeshGrid import startMesh
 
+# ------------------------------------------------------------------------
+#
 # Hash based on number of colors
+#
+# ------------------------------------------------------------------------
 def hash_tile(tile,numColors):
     return tile[0] + (numColors)*tile[1] + (numColors**2)*tile[2] + (numColors**3)*tile[3]
 
@@ -31,7 +35,11 @@ def build_tile_lookup(tiles, weights, colors):
 
     return hash_to_tile, hash_to_weight
 
+# ------------------------------------------------------------------------
+#
 # This should get each unique color from within our tileset
+#
+# ------------------------------------------------------------------------
 def unique_colors(tiles):
     color_set = set()
 
@@ -41,7 +49,11 @@ def unique_colors(tiles):
     
     return len(color_set)
 
+# ------------------------------------------------------------------------
+#
 # main handler
+#
+# ------------------------------------------------------------------------
 def WaveFunc(tiles, weights, grid_size):
 
     # Here we are going to start conversion to run WVC
@@ -69,6 +81,11 @@ def WaveFunc(tiles, weights, grid_size):
 
     return 
 
+# ------------------------------------------------------------------------
+#
+# This works with our cell function to get adjacency for our tileset
+#
+# ------------------------------------------------------------------------
 def waveStart(tiles, weights):
     colors = []
     color_to_index = {}

@@ -13,10 +13,16 @@ from ursina import *
 from ImagePNG import *
 from Blocks import create_block
 
-# Tile Colors
+# ------------------------------------------------------------------------
+#
+# This displays our sample tile set
+#
+# ------------------------------------------------------------------------
 def sampleTiles(tiles):
-    x,y,z = 0, 0, 0 
+    # displays them below our WFC set
+    x,y,z = 0, -5, 0 
     
+    # This converts each tile into the respective color
     for i in range(0,len(tiles)):
         for j in range(0,4):
             # Gets the tile color
@@ -32,16 +38,21 @@ def sampleTiles(tiles):
                 color=tile_color
             )
 
-            # This does our rotation so we print each block next to one another
+            # Rotation goes top left -> top right -> bottom left -> bottom right
+
+            # The way the rotation works is we move right one (x+1) after our first and 3rd move
             if (j == 0 or j == 2):
                 x += 1
+            # This is for after our second move, so we move to the bottom left
             elif (j == 1):
                 x -= 1
                 y -= 1
 
+        # Moves us over two so we have a space in between after each sample tile
         x += 2
         y += 1
 
+        # this just means after 8 moves, we move down and back to the start for cleaner display
         if (i % 8 == 7):
             y += -3
             x = 0

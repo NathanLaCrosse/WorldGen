@@ -16,20 +16,34 @@ from MeshGrid import startMesh
 
 import numpy as np
 
-#This is where I would put the main wave function call
+# ------------------------------------------------------------------------
+#
+# This is the main handler
+# imageLoad - modify the /XXXX.png for given sample image
+#           - This is for when you want to rotate True for rotate
+#
+# SampleTiles - displays the sample dataset
+#
+# grid_size - adjust to grid_size 30 x 30
+# WaveFunc - takes in the tiles and weight list as well as grid_size
+#
+# The rest is setting up our ursina enviornment
+#
+# ------------------------------------------------------------------------
 
 # Create test
 tiles, weights = imageLoad("PNGConvert/images/RedDot.png",True)
 
 app = Ursina()
 
-#sampleTiles(tiles)
+sampleTiles(tiles)
 
 # 32 is current max
-grid_size = 20
+grid_size = 30
 WaveFunc(tiles, weights, grid_size)
 
 
+# Sets up the Ursina enviornment
 
 # Lighting
 DirectionalLight().look_at(Vec3(1, -1, -1))

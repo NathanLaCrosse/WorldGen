@@ -8,11 +8,13 @@ Dylan Dudley - 03/28/2026
 
 import numpy as np
 
-
+# ------------------------------------------------------------------------
+#
+# Build a 2D array representing the full world from the collapsed cell grid.
+#
+# ------------------------------------------------------------------------
 def build_world_grid(cell_space, hash_to_tile, grid_n=2):
     """
-    Build a 2D array representing the full world from the collapsed cell grid.
-
     Parameters:
         cell_space: 2D list of Cell objects (collapsed)
         hash_to_tile: dict mapping tile hashes to tile pixel arrays
