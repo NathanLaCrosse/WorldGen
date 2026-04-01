@@ -18,44 +18,34 @@ from Blocks import create_block
 # This displays our sample tile set
 #
 # ------------------------------------------------------------------------
-def sampleTiles(tiles):
+def sampleTiles(tiles, tile_size=2):
     # displays them below our WFC set
     x,y,z = 0, -5, 0 
-    
-    # This converts each tile into the respective color
-    for i in range(0,len(tiles)):
-        for j in range(0,4):
-            # Gets the tile color
-            r_norm = tiles[i][j][0] / 255
-            g_norm = tiles[i][j][1] / 255
-            b_norm = tiles[i][j][2] / 255
+    x_offset = 0
 
-            tile_color = color.rgb(r_norm, g_norm, b_norm)  # Convert to color
+    for i, tile in enumerate(tiles):
+        # This converts each tile into the respective color
+        for row in range(tile_size):
+            for col in range(tile_size):
+                # Gets the tile color
+                r_norm = tile[row][col][0] / 255
+                g_norm = tile[row][col][1] / 255
+                b_norm = tile[row][col][2] / 255
 
-            # Create a 2x2x1 cube
-            create_block(
-                position=(x,y,z),
-                color=tile_color
-            )
+                tile_color = color.rgb(r_norm, g_norm, b_norm)  # Convert to color
 
-            # Rotation goes top left -> top right -> bottom left -> bottom right
+                # Create a 2x2x1 cube
+                create_block(
+                    position=((x_offset + col),(y-row),z),
+                    color=tile_color
+                )
 
-            # The way the rotation works is we move right one (x+1) after our first and 3rd move
-            if (j == 0 or j == 2):
-                x += 1
-            # This is for after our second move, so we move to the bottom left
-            elif (j == 1):
-                x -= 1
-                y -= 1
-
-        # Moves us over two so we have a space in between after each sample tile
-        x += 2
-        y += 1
+        x_offset += tile_size + 1  # Move to the next position for the next tile
 
         # this just means after 8 moves, we move down and back to the start for cleaner display
         if (i % 8 == 7):
-            y += -3
-            x = 0
+            x_offset = x
+            y -= tile_size + 2
 
 # Replaced by mesh. Keeping for reference if needed
 def waveDisplay(world_grid,grid_size,index_to_color):

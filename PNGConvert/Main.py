@@ -32,15 +32,19 @@ import numpy as np
 # ------------------------------------------------------------------------
 
 # Create test
-tiles, weights = imageLoad("PNGConvert/images/RedDot.png",True)
+tile_size = 3 # For sample tiles
+rotation = False # If we want rotations allowed
+grid_size = 30 # output grid size
+png_name = "BiggerCity" # Name of the PNG file in the images folder
+
+tiles, weights = imageLoad(f"PNGConvert/images/{png_name}.png",rotation, tile_size)
 
 app = Ursina()
 
-sampleTiles(tiles)
+# TODO: Use a mesh instead of individual cubes for better performance. This is just for testing purposes
+sampleTiles(tiles, tile_size)
 
-# 32 is current max
-grid_size = 30
-WaveFunc(tiles, weights, grid_size)
+#WaveFunc(tiles, weights, grid_size)
 
 
 # Sets up the Ursina enviornment
@@ -51,6 +55,7 @@ AmbientLight(color=color.rgba(100, 100, 100, 0.5))
 
 # Camera
 camera.position = (grid_size/2, grid_size/2, -(2*grid_size))
+camera.look_at(Vec3(grid_size/2, -5, 0))
 mouse.locked = True
 
 def input(key):
