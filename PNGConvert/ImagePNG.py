@@ -18,16 +18,28 @@ def load_image(path):
     return img
 
 # Checks if the tile already exists and will update the weight accordingly
-def uniqueTile(targetTile, tiles, Weight):
+def uniqueTile(targetTile, tiles, Weight,rotate):
+
     for i, tile in enumerate(tiles):
-        if tile == targetTile:
-            #Already exists
-            Weight[i] += 1
-            return False
+        if(rotate):
+            rotations = [
+                tile,                                  # 0°
+                [tile[2], tile[0], tile[3], tile[1]], # 90°
+                [tile[3], tile[2], tile[1], tile[0]], # 180°
+                [tile[1], tile[3], tile[0], tile[2]]  # 270°
+            ]
+        else:
+            rotations = [tile]
+        for j in range(len(rotations)):
+            if rotations[j] == targetTile:
+                #Already exists
+                Weight[i] += 1
+                return False
     return True
 
 
-def extract_tiles(img):
+# Creates a list of all colors and ensures that only unique are added to list
+def extract_tiles(img,rotate):
     # So we have the right amount of tiles based on sample image
     width, height = img.size
 
@@ -35,6 +47,7 @@ def extract_tiles(img):
     pixels = img.load()
 
     tiles = []
+    rotations = []
     Weights = []
     # now, we need to create a scanner that will go through the whole image and check each
     # section of 2x2 tiles. 
@@ -48,22 +61,57 @@ def extract_tiles(img):
                     pixels[x+1, y+1]      # bottom-right
                 ]
             
-            # Check if tile already exists
-            if(uniqueTile(tile, tiles, Weights)):
+            # Check if tile already exists and if not, add it
+            if(uniqueTile(tile, tiles, Weights,rotate)):
                 tiles.append(tile)
                 Weights.append(1)
+                #When we can rotate tiles
+                if(rotate):
+                    rotateTile(tile, rotations, Weights)
+
+    #For the rotations
+    for i in range(len(rotations)):
+        tiles.append(rotations[i])
 
     return tiles, Weights
 
+# Used to rotate tiles for all orientations
+def rotateTile(tile, rotations, Weights):
+    x,y,z,t = 2,0,3,1
+    temp = 0  
 
-def imageLoad(path):
+    #This is to check if all tiles are the same (Like all blue)
+    if len(set(tile)) == 1:
+        return
+
+    for j in range(3):
+
+        tile = [
+                tile[x],       # top-left
+                tile[y],       # top-right
+                tile[z],       # bottom-left
+                tile[t]        # bottom-right
+            ]
+            
+        # This is our rotation
+        temp = x
+        x = z
+        z = t
+        t = y
+        y = temp
+
+        rotations.append(tile)
+
+    return
+
+def imageLoad(path,rotate):
     img = load_image(path)
-    tiles, Weights = extract_tiles(img)
+    tiles, Weights = extract_tiles(img,rotate)
 
-    print(f"Total tiles: {len(tiles)}\n")
-    for i in range(0,len(tiles)):
-        print(i," tile:", tiles[i], "\n")
-        print(i," Weight:", Weights[i], "\n")
+    #print(f"Total tiles: {len(tiles)}\n")
+    #for i in range(0,len(tiles)):
+        #print(i," tile:", tiles[i], "\n")
+        #print(i," Weight:", Weights[i], "\n")
 
     return tiles, Weights
 
