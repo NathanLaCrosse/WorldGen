@@ -20,15 +20,18 @@ def generate_fully_recursive(tilemap, gen_size, tile_size=2):
     adjacencies = collect_adjacencies_bitwise(hash_to_num, tile_set)
 
     space_size = gen_size - tile_size + 1
-    cell_space = [ [Cell(tile_set, hash_to_num, num_to_hash, adjacencies, i, j) 
-                    for j in range(space_size)] for i in range(space_size)]
+    # cell_space = [ [Cell(tile_set, hash_to_num, num_to_hash, adjacencies, i, j) 
+    #                 for j in range(space_size)] for i in range(space_size)]
     
     # start_row = random.randint(0, space_size-1)
     # start_col = random.randint(0, space_size-1)
+    res = False
+    while not res:
+        cell_space = [ [Cell(tile_set, hash_to_num, num_to_hash, adjacencies, i, j) 
+                    for j in range(space_size)] for i in range(space_size)]
+        res = collapse_grid_fully_recursive(cell_space, 0, space_size, tile_size)
 
-    collapse_grid_fully_recursive(cell_space, 0, space_size, tile_size)
-
-    return build_grid_from_cell_space(cell_space, gen_size, tile_size)
+    return build_grid_from_cell_space(cell_space, gen_size, tile_size), res
 
 
 def collapse_grid_fully_recursive(cell_space, collapse_count, space_size, tile_size):
@@ -48,10 +51,6 @@ def collapse_grid_fully_recursive(cell_space, collapse_count, space_size, tile_s
     row, col = w[np.random.choice(np.arange(w.shape[0]))]
 
     cell = cell_space[row][col]
-    # if cell.superposition == 0:
-    #     # We ran out of available states before reaching this cell...
-    #     return False
-    
     original_superposition = cell.superposition
 
     # Check to see if we can collapse into a valid state 
@@ -74,11 +73,6 @@ def collapse_grid_fully_recursive(cell_space, collapse_count, space_size, tile_s
         
         # If valid, recurse deeper.
         if is_valid:
-            
-
-            # Choose the cell with minimum entropy
-            # new_row, new_col = np.unravel_index(np.argmin(entropy_grid), entropy_grid.shape)
-            
             result = collapse_grid_fully_recursive(cell_space, collapse_count+1, space_size, tile_size)
 
             if result:
@@ -189,7 +183,7 @@ if __name__ == '__main__':
     tilemap[7, 4:8] = 0
     tilemap[8:10, 5:8] = 0
 
-    grid = generate_fully_recursive(tilemap, 7, 2)
+    grid, result = generate_fully_recursive(tilemap, 6, 2)
     show_im(grid, get_colors())
-    # print(result)
+    print(result)
     plt.show()
