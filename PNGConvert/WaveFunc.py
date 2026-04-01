@@ -8,11 +8,16 @@ re-indexes the colors and determines adjacency rules
 Dylan Dudley - 03/28/2026
 
 ----------------------------------------------------------------"""
+import sys
+import os
 
+# Add parent directory to Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from FunctsFromCell2 import Cell, collapse_grid
 from WorldGrid import build_world_grid
 from SampleDisplay import waveDisplay
+from TileCollection import collect_adjacencies
 from MeshGrid import startMesh
 
 # ------------------------------------------------------------------------
@@ -21,33 +26,23 @@ from MeshGrid import startMesh
 #
 # ------------------------------------------------------------------------
 def hash_tile(tile,numColors):
-    return tile[0] + (numColors)*tile[1] + (numColors**2)*tile[2] + (numColors**3)*tile[3]
+    flat = [pixel for row in tile for pixel in row]
+    hash = 0
+    for i in range(len(flat)):
+        hash += flat[i] * (numColors ** i)
+    return hash
 
 # To create a table that has the tiles and weights
-def build_tile_lookup(tiles, weights, colors):
+def build_tile_lookup(tiles, weights, numColors):
     hash_to_tile = {}
     hash_to_weight = {}
 
     for i in range(len(tiles)):
-        h = hash_tile(tiles[i],colors)
+        h = hash_tile(tiles[i],numColors)
         hash_to_tile[h] = tiles[i]
         hash_to_weight[h] = weights[i]
 
     return hash_to_tile, hash_to_weight
-
-# ------------------------------------------------------------------------
-#
-# This should get each unique color from within our tileset
-#
-# ------------------------------------------------------------------------
-def unique_colors(tiles):
-    color_set = set()
-
-    for tile in tiles:
-        for color in tile:
-            color_set.add(color)
-    
-    return len(color_set)
 
 # ------------------------------------------------------------------------
 #
@@ -71,7 +66,7 @@ def WaveFunc(tiles, weights, grid_size):
     #use ursina to display world
     world_grid = build_world_grid(cell_space, hash_to_tile)
     world_grid = world_grid.astype(int)
-    print("\n\n")
+    
 
     # Now create a mesh to display everything
     startMesh(world_grid, grid_size, index_to_color)
@@ -103,40 +98,25 @@ def waveStart(tiles, weights):
         return color_to_index[rgb]
 
     # This will convert all tiles into color indexes (0,1,2,3....)
-    for i in range(len(tiles)):
-            colors.append([
-                        get_color_index(tiles[i][0]),        # top-left
-                        get_color_index(tiles[i][1]),        # top-right
-                        get_color_index(tiles[i][2]),        # bottom-left
-                        get_color_index(tiles[i][3])         # bottom-right
-                        ])
+    # Iterate over all tiles
+    for tile in tiles:
+        tile_indices = []
+        # Each tile can have any number of rows
+        for row in tile:
+            # Each row can have any number of columns
+            row_indices = [get_color_index(pixel) for pixel in row]
+            tile_indices.append(row_indices)
+        colors.append(tile_indices)
     
     # Gather unique colors
-    numColors = unique_colors(tiles)
+    numColors = len(color_to_index)
 
     # Hash the tiles 
     tile_hashes = [hash_tile(tile, numColors) for tile in colors]
     hash_to_tile, hash_to_weight = build_tile_lookup(colors, weights, numColors)
 
     # Directions for adjacency (must match Cell class)
-    directions = ['t', 'tr', 'tl', 'r', 'l', 'b', 'br', 'bl']
-    t1_comparisons = [[0,1], [1], [0], [1,3], [0,2], [2,3], [3], [2]]
-    t2_comparisons = [[2,3], [2], [3], [0,2], [1,3], [0,1], [0], [1]]
-
-    # Build adjacency rules
-    adjacencies = {}
-    for i, h1 in enumerate(tile_hashes):
-        for dir_idx, d in enumerate(directions):
-            adjacencies[(h1, d)] = []
-
-            for j, h2 in enumerate(tile_hashes):
-                valid = True
-                for k in range(len(t1_comparisons[dir_idx])):
-                    if colors[i][t1_comparisons[dir_idx][k]] != colors[j][t2_comparisons[dir_idx][k]]:
-                        valid = False
-                        break
-                if valid:
-                    adjacencies[(h1, d)].append(h2)
+    adjacencies = collect_adjacencies(hash_to_tile)
 
     return tile_hashes, hash_to_tile, hash_to_weight, adjacencies, color_to_index, index_to_color
     
