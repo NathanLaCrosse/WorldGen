@@ -36,9 +36,8 @@ n = 2
 
 tiles = np.zeros((tilemap_size - n + 1, tilemap_size - n + 1, n, n))
 
-for i in range(tilemap_size - n + 1):
-    for j in range(tilemap_size - n + 1):
-        tiles[i, j] = tilemap[i:i+n, j:j+n]
+for i, j in np.ndindex(tilemap_size-n+1, tilemap_size-n+1):
+    tiles[i, j] = tilemap[i:i+n, j:j+n]
 
 def hash_tile(tile):
     return int(tile[0,0] + 4 * tile[0, 1] + 16 * tile[1, 0] + 64 * tile[1,1])
@@ -177,10 +176,9 @@ class Cell:
         new_weights = []
 
         # Intersect weights as well as states
-        for i in range(len(new_superposition)):
-            for j in range(len(self.superposition)):
-                if new_superposition[i] == self.superposition[j]:
-                    new_weights.append(self.weights[j])
+        for i, j in np.ndindex(len(new_superposition), len(self.superposition)):
+            if new_superposition[i] == self.superposition[j]:
+                new_weights.append(self.weights[j])
 
         self.superposition = new_superposition
         self.weights = new_weights
@@ -207,23 +205,21 @@ class Cell:
 
 print('hi')
 # Let's attempt generation of a small grid\
-grid_size = 12
+grid_size = 6
 
 
-cell_space = [ [Cell(i, j) for j in range (grid_size-1)] for i in range(grid_size-1)]
+cell_space = [[Cell(i, j) for j in range (grid_size-1)] for i in range(grid_size-1)]
 entropy_grid = np.zeros((grid_size-1,grid_size-1))
 
 update_tracker = []
 
-for i in range(grid_size-1):
-    for j in range(grid_size-1):
-        entropy_grid[i,j] = cell_space[i][j].entropy()
+for i, j in np.ndindex((grid_size-1, grid_size-1)):
+    entropy_grid[i,j] = cell_space[i][j].entropy()
 
 def is_all_collapsed(cell_space):
-    for i in range(grid_size-1):
-        for j in range(grid_size-1):
-            if cell_space[i][j].state == -1:
-                return False
+    for i, j in np.ndindex(grid_size-1, grid_size-1):
+        if cell_space[i][j].state == -1:
+            return False
     
     return True
 
@@ -260,9 +256,8 @@ def collapse_grid(cell_space, row, col):
         if is_valid:
             entropy_grid = np.zeros((grid_size-1,grid_size-1))
 
-            for i in range(grid_size-1):
-                for j in range(grid_size-1):
-                    entropy_grid[i,j] = cell_space[i][j].entropy()
+            for i, j in np.ndindex(grid_size-1, grid_size-1):
+                entropy_grid[i,j] = cell_space[i][j].entropy()
 
             # Choose the cell with minimum entropy
             new_row, new_col = np.unravel_index(np.argmin(entropy_grid), entropy_grid.shape)
@@ -300,27 +295,25 @@ def collapse_grid(cell_space, row, col):
 # Time to build the grid with the cell states
 
 cell_space = [ [Cell(i, j) for j in range (grid_size-1)] for i in range(grid_size-1)]
-collapse_grid(cell_space, 0, 0)
+collapse_grid(cell_space, 4, 4)
 
 grid = np.zeros((grid_size,grid_size))
 
-for i in range(grid_size//2):
-    for j in range(grid_size//2):
-        grid[i*2:(i+1)*2, j*2:(j+1)*2] = reverse_hash(cell_space[2*i][2*j].state)
-show_im(grid)
+# for i, j in np.ndindex(grid_size//2, grid_size//2):
+#     grid[i*2:(i+1)*2, j*2:(j+1)*2] = reverse_hash(cell_space[2*i][2*j].state)
+# show_im(grid)
 
-# fig, ax = plt.subplots(5, 5)
-# for t in range(5):
-#     for v in range(5):
-#         cell_space = [ [Cell(i, j) for j in range (grid_size-1)] for i in range(grid_size-1)]
-#         collapse_grid(cell_space, 0, 0)
+fig, ax = plt.subplots(5, 5)
+for t in range(5):
+    for v in range(5):
+        cell_space = [ [Cell(i, j) for j in range (grid_size-1)] for i in range(grid_size-1)]
+        collapse_grid(cell_space, 0, 0)
 
-#         grid = np.zeros((grid_size,grid_size))
+        grid = np.zeros((grid_size,grid_size))
 
-#         for i in range(grid_size//2):
-#             for j in range(grid_size//2):
-#                 grid[i*2:(i+1)*2, j*2:(j+1)*2] = reverse_hash(cell_space[2*i][2*j].state)
-#         show_im(grid, ax[t,v])
-#         ax[t,v].axis('off')
+        for i, j in np.ndindex(grid_size//2, grid_size//2):
+            grid[i*2:(i+1)*2, j*2:(j+1)*2] = reverse_hash(cell_space[2*i][2*j].state)
+        show_im(grid, ax[t,v])
+        ax[t,v].axis('off')
 
 plt.show()
