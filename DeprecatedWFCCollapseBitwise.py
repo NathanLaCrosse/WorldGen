@@ -1,4 +1,4 @@
-from WaveCell import *
+from DeprecatedWaveCell import *
 
 dir_steps = [(-1, 0), (-1, 1), (-1, -1), (0, 1), (0, -1), (1, 0), (1, 1), (1, -1)]
 directions = ['t', 'tr', 'tl', 'r', 'l', 'b', 'br', 'bl']

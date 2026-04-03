@@ -1,4 +1,5 @@
-from WaveCell import *
+from TileCollection import *
+from collections import deque
 
 # dir_steps = [(-1, 0), (-1, 1), (-1, -1), (0, 1), (0, -1), (1, 0), (1, 1), (1, -1)]
 # directions = ['t', 'tr', 'tl', 'r', 'l', 'b', 'br', 'bl']
@@ -60,7 +61,7 @@ def build_grid_from_cell_space(state_space, gen_size, tile_size=2):
     return grid
 
 # Fully recursive method has unlimited backtracking but greatly extends runtime
-# Will guarantee a valid answer
+# Should guarantee a valid answer
 def generate_fully_recursive(tilemap, gen_size, tile_size=2):
     map_size = len(tilemap)
 
@@ -69,7 +70,6 @@ def generate_fully_recursive(tilemap, gen_size, tile_size=2):
 
     adjacencies = collect_adjacencies_bitwise(hash_to_num, tile_set)
     rev_adjacencies = collect_reverse_adjacencies(hash_to_num, tile_set)
-    # weights = np.array(list(tile_set.values()))[::-1] # Read in reverse order due to least significant bit being index 0
     weights = np.array(list(tile_set.values()))
     args = np.arange(num_states)
 
@@ -78,12 +78,11 @@ def generate_fully_recursive(tilemap, gen_size, tile_size=2):
     cell_space = np.ones((space_size, space_size), dtype=np.int64) * (2**num_states-1)
     state_space = np.ones((space_size, space_size), dtype=np.int64) * -1
 
-    res = collapse_grid_fully_recursive(cell_space, state_space, args, weights, num_to_hash, hash_to_num, adjacencies, rev_adjacencies, num_states, 0, space_size)
+    res = collapse_grid_fully_recursive(cell_space, state_space, args, weights, num_to_hash, 
+        hash_to_num, adjacencies, rev_adjacencies, num_states, 0, space_size)
 
-    if not res:
-        print("BIG ERROR")
-
-    return build_grid_from_cell_space(state_space, gen_size, tile_size)
+    # Return the grid and whether or not the generation was successful (certain tilemaps may have no valid solution)
+    return build_grid_from_cell_space(state_space, gen_size, tile_size), res
 
 def collapse_grid_fully_recursive(cell_space, state_space, args, weights, index_to_hash, hash_to_index, adjacencies, rev_adjacencies, num_states, collapse_count, space_size):
     if collapse_count == space_size*space_size:
@@ -125,9 +124,8 @@ def collapse_grid_fully_recursive(cell_space, state_space, args, weights, index_
             if row + step[0] < 0 or row + step[0] > space_size-1 or col + step[1] < 0 or col + step[1] > space_size-1:
                 continue
 
-            # adj = superposition_adjacencies(cell_space, index_to_hash, adjacencies, 
-            #                                 num_states, directions[i], row, col)
-            adj = build_allowed_superposition(cell_space, index_to_hash, rev_adjacencies, num_states, (row, col), (row + step[0], col + step[1]), directions[i])
+            adj = build_allowed_superposition(cell_space, index_to_hash, rev_adjacencies, 
+                num_states, (row, col), (row + step[0], col + step[1]), directions[i])
             queue.append((row + step[0], col + step[1], adj))
 
         # Perform a BFS
@@ -155,17 +153,21 @@ def collapse_grid_fully_recursive(cell_space, state_space, args, weights, index_
                 # Propagate further 
                 for i in range(len(directions)):
                     step = dir_steps[i]
+
                     if qr + step[0] < 0 or qr + step[0] > space_size-1 or qc + step[1] < 0 or qc + step[1] > space_size-1:
                         continue
-                    # adj = superposition_adjacencies(cell_space, index_to_hash, adjacencies, 
-                    #                                 num_states, directions[i], qr, qc)
-                    adj = build_allowed_superposition(cell_space, index_to_hash, rev_adjacencies, num_states, (qr, qc), (qr + step[0], qc + step[1]), directions[i])
+
+                    adj = build_allowed_superposition(cell_space, index_to_hash, 
+                        rev_adjacencies, num_states, (qr, qc), (qr + step[0], qc + step[1]), 
+                        directions[i])
                     queue.append((qr + step[0], qc + step[1], adj))
         
         # If valid, recurse deeper.
         if is_valid:
             # Recursive call
-            result = collapse_grid_fully_recursive(cell_space, state_space, args, weights, index_to_hash, hash_to_index, adjacencies, rev_adjacencies,  num_states, collapse_count + 1, space_size)
+            result = collapse_grid_fully_recursive(cell_space, state_space, args, weights, 
+                index_to_hash, hash_to_index, adjacencies, rev_adjacencies,  num_states, 
+                collapse_count + 1, space_size)
 
             if result:
                 return True
@@ -187,7 +189,7 @@ def collapse_grid_fully_recursive(cell_space, state_space, args, weights, index_
 
 
 if __name__ == '__main__':
-    tilemap = np.ones((10,10))
+    tilemap = np.ones((11,10))
 
     tilemap[0:2, :] = 3
     tilemap[2:3, :7] = 3
