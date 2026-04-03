@@ -45,12 +45,20 @@ class Cell:
 
             # To the propagation queue, we add the cell's location and then its allowed states based on
             # what the cell collapsed to.
-            propagation_queue.append([(self.row + step[0], self.col + step[1]), self.adjacencies[(self.state, directions[i])]])
+            propagation_queue.append((self.row + step[0], self.col + step[1]))
+    
+    def gather_neighbors(self, queue):
+        for i in range(len(directions)):
+            step = dir_steps[i]
+
+            # To the propagation queue, we add the cell's location and then its allowed states based on
+            # what the cell collapsed to.
+            queue.append((self.row + step[0], self.col + step[1]))
     
     def reverse_collapse(self, propagation_queue):
         # We want to disclude our current state from the superposition.
         # To do this, we simply obtain the bit flag and XOR it with our superposition
-        self.superposition = self.superposition ^ 2**self.hash_to_index[self.state]
+        self.superposition &= ~(2**self.hash_to_index[self.state])
 
         # Add to the propogation queue cells we need to unnarrow
         for i in range(len(directions)):
@@ -73,6 +81,21 @@ class Cell:
         new_superposition = self.superposition & possibilities
 
         self.superposition = new_superposition
+
+    def advanced_narrow(self, other_superposition, direction):
+        # Narrow superposition based on another tile's superposition.
+        combined_possibilities = 0
+
+        c = other_superposition
+        for i in range(self.num_states):
+            index_present = c & 1
+            
+            if index_present:
+                combined_possibilities |= self.adjacencies[(self.index_to_hash[i], direction)]
+            c = c >> 1
+        
+        # Perform bitwise AND to cancel out illegal possibilities
+        return combined_possibilities
     
     def reverse_narrow(self):
         if self.state != -1 or len(self.previous_superpositions) == 0:
@@ -80,6 +103,7 @@ class Cell:
             return
 
         # Pop off the stack since we reverted.
+        self.superposition = self.previous_superpositions[-1]
         self.previous_superpositions.pop()
     
     def entropy(self):
