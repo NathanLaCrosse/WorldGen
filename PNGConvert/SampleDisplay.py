@@ -12,6 +12,7 @@ Dylan Dudley - 03/27/2026
 from ursina import *
 from ImagePNG import *
 from Blocks import create_block
+import numpy as np
 
 # ------------------------------------------------------------------------
 #
@@ -48,25 +49,21 @@ def sampleTiles(tiles, tile_size=2):
             y -= tile_size + 2
 
 # Replaced by mesh. Keeping for reference if needed
-def waveDisplay(world_grid,grid_size,index_to_color):
-    x,y,z = 0, 0, 0 
-    
-    for i in range(grid_size-1):
-        for j in range(grid_size-1):
-            # Gets the tile color
-            colors = index_to_color[world_grid[i][j]]
+def sample_mesh(tiles, color_to_index, tile_size=2):
+    tile_length = len(tiles)
+    sample_grid = np.full((grid_size, grid_size), -1)
 
-            r_norm = colors[0] / 255
-            g_norm = colors[1] / 255
-            b_norm = colors[2] / 255
+    current_x = 0
+    for tile in tiles:
+        # tile is tile_size x tile_size
+        for dy in range(tile_size):
+            for dx in range(tile_size):
+                # make sure we don't go out of bounds
+                if dy < grid_size and current_x + dx < grid_size:
+                    sample_grid[dy][current_x + dx] = color_to_index[tile[dy][dx]]
+        # move to next tile horizontally
+        current_x += tile_size
 
-            tile_color = color.rgb(r_norm, g_norm, b_norm)  # Convert to color
-
-            # Create a 2x2x1 cube
-            create_block(
-                position=(x,y,z),
-                color=tile_color
-            )
-            x += 1
-        y -= 1
-        x = 0
+    print(sample_grid)
+    return sample_grid
+            

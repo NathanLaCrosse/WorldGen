@@ -33,7 +33,7 @@ import numpy as np
 # Create test
 tile_size = 2 # For sample tiles
 rotation = False # If we want rotations allowed
-grid_size = 15 # output grid size
+grid_size = 40 # output grid size
 png_name = "4Color" # Name of the PNG file in the images folder
 
 tiles, weights = imageLoad(f"PNGConvert/images/{png_name}.png",rotation, tile_size)

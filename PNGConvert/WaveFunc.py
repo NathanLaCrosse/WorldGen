@@ -16,6 +16,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from WFC import generate_fully_recursive
 from MeshGrid import startMesh
+from SampleDisplay import sample_mesh
 
 # ------------------------------------------------------------------------
 #
@@ -53,13 +54,17 @@ def build_tile_lookup(tiles, weights, numColors):
 # ------------------------------------------------------------------------
 def WaveFunc(tiles, weights, grid_size, tile_size):
 
-    hash_to_num, num_to_hash, tile_set, index_to_color, colors = tileToColor(tiles, weights)
+    hash_to_num, num_to_hash, tile_set, index_to_color, color_to_index, colors = tileToColor(tiles, weights)
 
     PNG=True
     
     grid = generate_fully_recursive(grid_size, grid_size, tile_size, PNG, hash_to_num, num_to_hash, tile_set)
+
+    startMesh(grid[0], index_to_color)
+
+    # TODO: Fix this
+    #sample_mesh(tiles, color_to_index)
     
-    startMesh(grid, index_to_color)
 
     return 
 
@@ -102,5 +107,5 @@ def tileToColor(tiles, weights):
     hash_to_num, num_to_hash, tile_set = build_tile_lookup(colors, weights, numColors)
 
 
-    return hash_to_num, num_to_hash, tile_set, index_to_color, colors
+    return hash_to_num, num_to_hash, tile_set, index_to_color,color_to_index, colors
     

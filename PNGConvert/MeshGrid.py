@@ -56,7 +56,8 @@ def create_mesh(world_grid, index_to_color, tile_size=1):
 
     # Creates the mesh, then forms as an entity
     mesh = Mesh(vertices=tiles_holder, triangles=triangles, colors=colors, mode='triangle')
-    entity = Entity(model=mesh)
+    entity = Entity(model=mesh, position=(rows, cols, 0))
+    entity.rotation_z = 180
     return
 
 
