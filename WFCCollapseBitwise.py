@@ -1,5 +1,12 @@
 from WaveCell import *
-import random
+
+dir_steps = [(-1, 0), (-1, 1), (-1, -1), (0, 1), (0, -1), (1, 0), (1, 1), (1, -1)]
+directions = ['t', 'tr', 'tl', 'r', 'l', 'b', 'br', 'bl']
+op_directions = ['b', 'bl', 'br', 'l', 'r', 't', 'tl', 'tr']
+
+# directions = ['t', 'r', 'b', 'l']
+# dir_steps = [(-1,0), (0,1), (1,0), (0,-1)]
+# op_directions = ['b', 'l', 't', 'r']
 
 def build_grid_from_cell_space(cell_space, gen_size, tile_size=2):
     grid = np.zeros((gen_size,gen_size))
@@ -20,18 +27,34 @@ def generate_fully_recursive(tilemap, gen_size, tile_size=2):
     adjacencies = collect_adjacencies_bitwise(hash_to_num, tile_set)
 
     space_size = gen_size - tile_size + 1
-    # cell_space = [ [Cell(tile_set, hash_to_num, num_to_hash, adjacencies, i, j) 
-    #                 for j in range(space_size)] for i in range(space_size)]
-    
-    # start_row = random.randint(0, space_size-1)
-    # start_col = random.randint(0, space_size-1)
+
+    # reverse_adjacencies = {}
+
+    # for (tile, direction), bitmask in adjacencies.items():
+    #     for i in range(len(hash_to_num)):
+    #         if bitmask & (1 << i):
+    #             neighbor_tile = num_to_hash[i]
+    #             key = (neighbor_tile, direction)
+
+    #             if key not in reverse_adjacencies:
+    #                 reverse_adjacencies[key] = 0
+
+    #             reverse_adjacencies[key] |= (1 << hash_to_num[tile])
+
     res = False
     while not res:
         cell_space = [ [Cell(tile_set, hash_to_num, num_to_hash, adjacencies, i, j) 
                     for j in range(space_size)] for i in range(space_size)]
         res = collapse_grid_fully_recursive(cell_space, 0, space_size, tile_size)
+        print('uh')
 
-    return build_grid_from_cell_space(cell_space, gen_size, tile_size), res
+    plt.axis('off')
+    fig, ax = plt.subplots(space_size, space_size)
+    for i, j in np.ndindex(space_size, space_size):
+        show_im(reverse_hash(cell_space[i][j].state), get_colors(), ax[i,j])
+    # plt.show()
+
+    # return build_grid_from_cell_space(cell_space, gen_size, tile_size), res
 
 
 def collapse_grid_fully_recursive(cell_space, collapse_count, space_size, tile_size):
@@ -46,7 +69,7 @@ def collapse_grid_fully_recursive(cell_space, collapse_count, space_size, tile_s
     # If there is a state with zero entropy, it has no options, meaning we've reached an invalid state
     if entropy_grid.min() == 0:
         return False
-
+    
     w = np.argwhere(entropy_grid == entropy_grid.min())
     row, col = w[np.random.choice(np.arange(w.shape[0]))]
 
@@ -58,18 +81,63 @@ def collapse_grid_fully_recursive(cell_space, collapse_count, space_size, tile_s
         queue = []
         cell.collapse(queue)
 
+        queue = deque(queue)
+
+        modifications = deque()
+
+        # Perform a BFS to thin out states across the entire space
         is_valid = True
-        for q in queue:
-            pos = q[0]
+        while len(queue) > 0:
+            pos = queue.popleft()
 
             if pos[0] < 0 or pos[0] > space_size-1 or pos[1] < 0 or pos[1] > space_size-1:
                 continue  # Skip if out-of-bounds
 
-            possibilities = q[1]
-            cell_space[pos[0]][pos[1]].narrow(possibilities)
+            prop_cell = cell_space[pos[0]][pos[1]]
 
-            if cell_space[pos[0]][pos[1]].superposition == 0:
-                is_valid = False # This cell has no legal states
+            old_superposition = prop_cell.superposition
+            new_superposition = prop_cell.superposition
+
+            # Use all neighbors to update the cell
+            for d in range(len(directions)):
+                step = dir_steps[d]
+
+                # NOTE - We actually want to travel in the opposite direction, as the neighbor is being compared to the current cell
+                neighbor_pos = (pos[0] - step[0], pos[1] - step[1])
+
+                if neighbor_pos[0] < 0 or neighbor_pos[0] > space_size-1 or neighbor_pos[1] < 0 or neighbor_pos[1] > space_size-1:
+                    continue
+                
+                # new_superposition &= prop_cell.advanced_narrow(cell_space[neighbor_pos[0]][neighbor_pos[1]].superposition, directions[d])
+
+                neighbor = cell_space[neighbor_pos[0]][neighbor_pos[1]]
+                c = neighbor.superposition
+                combined_possibilities = 0 
+
+                for i in range(neighbor.num_states):
+                    index_present = c & 1
+                    
+                    if index_present:
+                        combined_possibilities |= neighbor.adjacencies[(neighbor.index_to_hash[i], directions[d])]
+                    c = c >> 1
+                
+                new_superposition &= combined_possibilities
+
+            # Grab new superposition
+            if new_superposition != old_superposition:
+                if new_superposition == 0:
+                    is_valid = False
+                    break
+
+                modifications.append((prop_cell, old_superposition))
+                prop_cell.superposition = new_superposition
+                
+                # Continue BFS
+                for i in range(len(directions)):
+                    step = dir_steps[i]
+                    queue.append((pos[0] + step[0], pos[1] + step[1]))
+
+
         
         # If valid, recurse deeper.
         if is_valid:
@@ -79,18 +147,15 @@ def collapse_grid_fully_recursive(cell_space, collapse_count, space_size, tile_s
                 return True
             # If false, keep looping
         
-        # If invalid, reverse everything and continue (revert collapse)
-        queue = []
-        cell.reverse_collapse(queue) # Note - removes current state from superposition
+        # If not valid, revert 
+        for c, old_superposition in reversed(modifications):
+            c.superposition = old_superposition
+        cell.superposition &= ~(2**cell.hash_to_index[cell.state])
+        cell.state = -1
 
-        for q in queue:
-            pos = q
+    if collapse_count == 0:
+        pass
 
-            if pos[0] < 0 or pos[0] > space_size-1 or pos[1] < 0 or pos[1] > space_size-1:
-                continue  # Skip if out-of-bounds
-
-            cell_space[pos[0]][pos[1]].reverse_narrow()
-        
     # There are no possible states that we choose - all end up with an invalid grid
     # We need to backtrack, so revert this state back to where it was.
     cell.superposition = original_superposition
@@ -183,7 +248,14 @@ if __name__ == '__main__':
     tilemap[7, 4:8] = 0
     tilemap[8:10, 5:8] = 0
 
-    grid, result = generate_fully_recursive(tilemap, 6, 2)
-    show_im(grid, get_colors())
-    print(result)
+    # tilemap = np.ones((5,5)) * 3
+
+    # tilemap[2:5, 2:5] = 2
+    # tilemap[1, 2] = 2
+    # tilemap[2, 1] = 2
+
+    # grid, result = generate_fully_recursive(tilemap, 4, 2)
+    generate_fully_recursive(tilemap, 4, 2)
+    # show_im(grid, get_colors())
+    # print(result)
     plt.show()

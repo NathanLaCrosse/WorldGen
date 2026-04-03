@@ -111,8 +111,8 @@ def collect_adjacencies(tile_set):
             adjacencies[(t, directions[d])] = []
 
         for target in tile_set.keys():
-            if t == target:
-                continue # Avoid checking adjacencies against yourself
+            # if t == target:
+            #     continue # Avoid checking adjacencies against yourself
 
             for d in range(len(directions)):
                 if compare_hashes(t, target, t1_comparisons[d], t2_comparisons[d]) and target not in adjacencies[(t, directions[d])]:
@@ -128,26 +128,12 @@ def collect_adjacencies_bitwise(hash_to_num, tile_set):
     adjacencies = {}
 
     for t in tile_set.keys():
-        # t is the current tile to compute adjacencies for
-        # adjacencies[(t, 't')] = []
-        # for d in range(len(directions)):
-        #     adjacencies[(t, directions[d])] = []
-
-        # for target in tile_set.keys():
-        #     if t == target:
-        #         continue # Avoid checking adjacencies against yourself
-            
-        #     s = 0
-        #     for d in range(len(directions)):
-        #         if compare_hashes(t, target, t1_comparisons[d], t2_comparisons[d]) and target not in adjacencies[(t, directions[d])]:
-        #             adjacencies[(t, directions[d])].append(target)
-
         for d in range(len(directions)):
             s = 0 # This sum keeps track of all states that we could be in (as bit flags)
 
             for target in tile_set.keys():
-                if t == target:
-                    continue # Avoid checking adjacencies against yourself
+                # if t == target:
+                #     continue # Avoid checking adjacencies against yourself
             
                 if compare_hashes(t, target, t1_comparisons[d], t2_comparisons[d]):
                     s += 2**hash_to_num[target] # Add bit flag to s
@@ -155,3 +141,24 @@ def collect_adjacencies_bitwise(hash_to_num, tile_set):
             adjacencies[(t, directions[d])] = s
     
     return adjacencies
+
+def collect_reverse_adjacencies(hash_to_num, tile_set):
+    # Given a state and a direction used to reach it, what did that previous state
+    # have to have? (as a bitmask)
+    directions =     ['t',  'tr', 'tl', 'r', 'l',    'b', 'br', 'bl']
+    t1_comparisons = [[0,1], [1], [0], [1,3], [0,2], [2,3], [3], [2]]
+    t2_comparisons = [[2,3], [2], [3], [0,2], [1,3], [0,1], [0], [1]]
+    rev_adjacencies = {}
+
+    for t in tile_set.keys():
+        for d in range(len(directions)):
+            s = 0 # Sum of possible supporting states
+
+            for target in tile_set.keys():
+                if compare_hashes(target, t, t1_comparisons[d], t2_comparisons[d]):
+                    s += 2**hash_to_num[target]
+            
+            rev_adjacencies[(t, directions[d])] = s
+    
+    return rev_adjacencies
+
