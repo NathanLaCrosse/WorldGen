@@ -14,7 +14,7 @@ import os
 # Add parent directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from WFCCollapseBitwise import generate_fully_recursive
+from WFC import generate_fully_recursive
 from MeshGrid import startMesh
 
 # ------------------------------------------------------------------------
