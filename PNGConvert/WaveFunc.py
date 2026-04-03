@@ -14,10 +14,7 @@ import os
 # Add parent directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from FunctsFromCell2 import Cell, collapse_grid
-from WorldGrid import build_world_grid
-from SampleDisplay import waveDisplay
-from TileCollection import collect_adjacencies
+from WFCCollapseBitwise import generate_fully_recursive
 from MeshGrid import startMesh
 
 # ------------------------------------------------------------------------
@@ -34,54 +31,44 @@ def hash_tile(tile,numColors):
 
 # To create a table that has the tiles and weights
 def build_tile_lookup(tiles, weights, numColors):
-    hash_to_tile = {}
-    hash_to_weight = {}
+    tile_set  = {}
 
     for i in range(len(tiles)):
         h = hash_tile(tiles[i],numColors)
-        hash_to_tile[h] = tiles[i]
-        hash_to_weight[h] = weights[i]
+        tile_set [h] = weights[i]
 
-    return hash_to_tile, hash_to_weight
+    hash_to_num = {}
+    num_to_hash = {}
+
+    for i, h in enumerate(tile_set.keys()):
+        hash_to_num[h] = i
+        num_to_hash[i] = h
+
+    return hash_to_num, num_to_hash, tile_set
 
 # ------------------------------------------------------------------------
 #
 # main handler
 #
 # ------------------------------------------------------------------------
-def WaveFunc(tiles, weights, grid_size):
+def WaveFunc(tiles, weights, grid_size, tile_size):
 
-    # Here we are going to start conversion to run WVC
-    tile_hashes, hash_to_tile, hash_to_weight, adjacencies, color_to_index, index_to_color = waveStart(tiles, weights)
+    hash_to_num, num_to_hash, tile_set, index_to_color, colors = tileToColor(tiles, weights)
 
-    # Create cell grid for generation
+    PNG=True
     
-    cell_space = [
-        [Cell(i, j, tile_hashes, hash_to_weight, adjacencies) for j in range(grid_size-1)]
-        for i in range(grid_size-1)
-    ]
-
-    collapse_grid(cell_space, 0, 0,grid_size)
+    grid = generate_fully_recursive(grid_size, grid_size, tile_size, PNG, hash_to_num, num_to_hash, tile_set)
     
-    #use ursina to display world
-    world_grid = build_world_grid(cell_space, hash_to_tile)
-    world_grid = world_grid.astype(int)
-    
-
-    # Now create a mesh to display everything
-    startMesh(world_grid, grid_size, index_to_color)
-
-    # Old display
-    # waveDisplay(world_grid,grid_size,index_to_color)
+    startMesh(grid, index_to_color)
 
     return 
 
 # ------------------------------------------------------------------------
 #
-# This works with our cell function to get adjacency for our tileset
+# This will convert the tiles list into color indexes
 #
 # ------------------------------------------------------------------------
-def waveStart(tiles, weights):
+def tileToColor(tiles, weights):
     colors = []
     color_to_index = {}
     index_to_color = {}
@@ -112,11 +99,8 @@ def waveStart(tiles, weights):
     numColors = len(color_to_index)
 
     # Hash the tiles 
-    tile_hashes = [hash_tile(tile, numColors) for tile in colors]
-    hash_to_tile, hash_to_weight = build_tile_lookup(colors, weights, numColors)
+    hash_to_num, num_to_hash, tile_set = build_tile_lookup(colors, weights, numColors)
 
-    # Directions for adjacency (must match Cell class)
-    adjacencies = collect_adjacencies(hash_to_tile)
 
-    return tile_hashes, hash_to_tile, hash_to_weight, adjacencies, color_to_index, index_to_color
+    return hash_to_num, num_to_hash, tile_set, index_to_color, colors
     

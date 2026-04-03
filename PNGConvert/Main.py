@@ -12,7 +12,6 @@ from ursina import *
 from ImagePNG import imageLoad 
 from SampleDisplay import sampleTiles
 from WaveFunc import WaveFunc 
-from MeshGrid import startMesh
 
 import numpy as np
 
@@ -34,17 +33,17 @@ import numpy as np
 # Create test
 tile_size = 2 # For sample tiles
 rotation = False # If we want rotations allowed
-grid_size = 30 # output grid size
-png_name = "BiggerCity" # Name of the PNG file in the images folder
+grid_size = 15 # output grid size
+png_name = "4Color" # Name of the PNG file in the images folder
 
 tiles, weights = imageLoad(f"PNGConvert/images/{png_name}.png",rotation, tile_size)
 
 app = Ursina()
 
 # TODO: Use a mesh instead of individual cubes for better performance. This is just for testing purposes
-#sampleTiles(tiles, tile_size)
+sampleTiles(tiles, tile_size)
 
-WaveFunc(tiles, weights, grid_size)
+WaveFunc(tiles, weights, grid_size, tile_size)
 
 
 # Sets up the Ursina enviornment

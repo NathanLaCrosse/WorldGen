@@ -12,12 +12,17 @@ def build_grid_from_cell_space(cell_space, gen_size, tile_size=2):
 
 # Fully recursive method has unlimited backtracking but greatly extends runtime
 # Will guarantee a valid answer
-def generate_fully_recursive(tilemap, gen_size, tile_size=2):
-    map_size = len(tilemap)
+def generate_fully_recursive(tilemap, gen_size, tile_size=2,PNG=False, hash_to_num={},num_to_hash={},tile_set={}):
+    if(not PNG):
+        map_size = len(tilemap)
 
-    hash_to_num, num_to_hash, tile_set = collect_bitwise_tileset(tilemap, map_size, tile_size)
+        hash_to_num, num_to_hash, tile_set = collect_bitwise_tileset(tilemap, map_size, tile_size)
+    else:
+        map_size = tilemap
 
     adjacencies = collect_adjacencies_bitwise(hash_to_num, tile_set)
+
+    print(hash_to_num, "\n\n\n", num_to_hash, "\n\n\n", tile_set, "\n\n\n", adjacencies)
 
     space_size = gen_size - tile_size + 1
     cell_space = [ [Cell(tile_set, hash_to_num, num_to_hash, adjacencies, i, j) 

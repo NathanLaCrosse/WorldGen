@@ -13,7 +13,7 @@ from ursina import *
 #
 # ------------------------------------------------------------------------
 
-def startMesh(world_grid, grid_size, index_to_color):
+def startMesh(world_grid, index_to_color):
     create_mesh(world_grid,index_to_color)
     return
 
