@@ -99,6 +99,7 @@ def collapse_grid_fully_recursive(cell_space, state_space, args, weights, index_
     row, col = w[np.random.choice(np.arange(w.shape[0]))]
 
     original_superposition = cell_space[row, col]
+    current_superposition = cell_space[row, col]
 
     while cell_space[row, col] > 0:
         queue = deque()
@@ -176,7 +177,8 @@ def collapse_grid_fully_recursive(cell_space, state_space, args, weights, index_
         # If not valid, revert 
         for r, c, old_superposition in reversed(modifications):
             cell_space[r, c] = old_superposition
-        cell_space[row, col] &= ~(2**index)
+        cell_space[row, col] = current_superposition & ~(2**index)
+        current_superposition = cell_space[row, col]
         state_space[row, col] = -1
     
     # There are no possible states that we choose - all end up with an invalid grid
@@ -212,7 +214,7 @@ if __name__ == '__main__':
     # tilemap[2, 1] = 2
 
     # grid, result = generate_fully_recursive(tilemap, 4, 2)
-    grid = generate_fully_recursive(tilemap, 30, 2)
+    grid, result = generate_fully_recursive(tilemap, 30, 2)
     show_im(grid, get_colors())
     # print(result)
     plt.show()
