@@ -11,23 +11,50 @@ Dylan Dudley - 03/27/2026
 from ursina import *
 from ImagePNG import imageLoad 
 from SampleDisplay import sampleTiles
+from WaveFunc import WaveFunc 
+
+import numpy as np
+
+# ------------------------------------------------------------------------
+#
+# This is the main handler
+# imageLoad - modify the /XXXX.png for given sample image
+#           - This is for when you want to rotate True for rotate
+#
+# SampleTiles - displays the sample dataset
+#
+# grid_size - adjust to grid_size 30 x 30
+# WaveFunc - takes in the tiles and weight list as well as grid_size
+#
+# The rest is setting up our ursina enviornment
+#
+# ------------------------------------------------------------------------
+
+# Create test
+tile_size = 2 # For sample tiles
+rotation = False # If we want rotations allowed
+grid_size = 40 # output grid size
+png_name = "4Color" # Name of the PNG file in the images folder
+
+tiles, weights = imageLoad(f"PNGConvert/images/{png_name}.png",rotation, tile_size)
 
 app = Ursina()
 
-#This is where I would put the main wave function call
+# TODO: Use a mesh instead of individual cubes for better performance. This is just for testing purposes
+sampleTiles(tiles, tile_size)
 
-# Create test
-tiles, weights = imageLoad("PNGConvert/Mount.png",False)
+WaveFunc(tiles, weights, grid_size, tile_size)
 
-sampleTiles(tiles)
 
+# Sets up the Ursina enviornment
 
 # Lighting
 DirectionalLight().look_at(Vec3(1, -1, -1))
 AmbientLight(color=color.rgba(100, 100, 100, 0.5))
 
 # Camera
-camera.position = (0, 2, -8)
+camera.position = (grid_size/2, grid_size/2, -(2*grid_size))
+camera.look_at(Vec3(grid_size/2, -5, 0))
 mouse.locked = True
 
 def input(key):

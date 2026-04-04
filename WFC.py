@@ -1,5 +1,8 @@
 from TileCollection import *
 from collections import deque
+import sys
+
+sys.setrecursionlimit(10**6)
 
 # dir_steps = [(-1, 0), (-1, 1), (-1, -1), (0, 1), (0, -1), (1, 0), (1, 1), (1, -1)]
 # directions = ['t', 'tr', 'tl', 'r', 'l', 'b', 'br', 'bl']
@@ -62,10 +65,14 @@ def build_grid_from_cell_space(state_space, gen_size, tile_size=2):
 
 # Fully recursive method has unlimited backtracking but greatly extends runtime
 # Should guarantee a valid answer
-def generate_fully_recursive(tilemap, gen_size, tile_size=2):
-    map_size = len(tilemap)
+def generate_fully_recursive(tilemap, gen_size, tile_size=2,PNG=False, hash_to_num={},num_to_hash={},tile_set={}):
+    if(not PNG):
+        map_size = len(tilemap)
 
-    hash_to_num, num_to_hash, tile_set = collect_bitwise_tileset(tilemap, map_size, tile_size)
+        hash_to_num, num_to_hash, tile_set = collect_bitwise_tileset(tilemap, map_size, tile_size)
+    else:
+        map_size = tilemap
+
     num_states = len(tile_set.keys())
 
     adjacencies = collect_adjacencies_bitwise(hash_to_num, tile_set)

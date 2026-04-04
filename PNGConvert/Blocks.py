@@ -1,6 +1,7 @@
 """----------------------------------------------------------------
 
-Simple block creation code to allow dynamic creation of blocks
+Simple block creation code to allow dynamic creation of blocks.
+Only used for sample block display. 
 
 Dylan Dudley - 03/27/2026
 
