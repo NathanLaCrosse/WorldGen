@@ -17,35 +17,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from WFC import generate_fully_recursive
 from MeshGrid import startMesh
 from SampleDisplay import sample_mesh
-
-# ------------------------------------------------------------------------
-#
-# Hash based on number of colors
-#
-# ------------------------------------------------------------------------
-def hash_tile(tile,numColors):
-    flat = [pixel for row in tile for pixel in row]
-    hash = 0
-    for i in range(len(flat)):
-        hash += flat[i] * (numColors ** i)
-    return hash
-
-# To create a table that has the tiles and weights
-def build_tile_lookup(tiles, weights, numColors):
-    tile_set  = {}
-
-    for i in range(len(tiles)):
-        h = hash_tile(tiles[i],numColors)
-        tile_set [h] = weights[i]
-
-    hash_to_num = {}
-    num_to_hash = {}
-
-    for i, h in enumerate(tile_set.keys()):
-        hash_to_num[h] = i
-        num_to_hash[i] = h
-
-    return hash_to_num, num_to_hash, tile_set
+from TileCollection import hash_tile, build_tile_lookup
 
 # ------------------------------------------------------------------------
 #
@@ -54,11 +26,11 @@ def build_tile_lookup(tiles, weights, numColors):
 # ------------------------------------------------------------------------
 def WaveFunc(tiles, weights, grid_size, tile_size):
 
-    hash_to_num, num_to_hash, tile_set, index_to_color, color_to_index, colors = tileToColor(tiles, weights)
+    hash_to_num, num_to_hash, tile_set, index_to_color, color_to_index, numColors = tileToColor(tiles, weights)
 
     PNG=True
     
-    grid = generate_fully_recursive(grid_size, grid_size, tile_size, PNG, hash_to_num, num_to_hash, tile_set)
+    grid = generate_fully_recursive(None, grid_size, tile_size, PNG, hash_to_num, num_to_hash, tile_set, numColors)
 
     startMesh(grid[0], index_to_color)
 
@@ -107,5 +79,5 @@ def tileToColor(tiles, weights):
     hash_to_num, num_to_hash, tile_set = build_tile_lookup(colors, weights, numColors)
 
 
-    return hash_to_num, num_to_hash, tile_set, index_to_color,color_to_index, colors
+    return hash_to_num, num_to_hash, tile_set, index_to_color,color_to_index, numColors
     
