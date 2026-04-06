@@ -54,29 +54,29 @@ def build_allowed_superposition(cell_space, index_to_hash, rev_adjacencies, num_
     
     return allowed_sink
 
-def build_grid_from_cell_space(state_space, gen_size, tile_size=2):
+def build_grid_from_cell_space(state_space, gen_size, tile_size, numColors):
     grid = np.zeros((gen_size,gen_size), dtype=np.int64)
 
     space_size = gen_size - tile_size + 1
     for i, j in np.ndindex((space_size, space_size)):
-        grid[i:i+tile_size, j:j+tile_size] = reverse_hash(state_space[i,j])
+        grid[i:i+tile_size, j:j+tile_size] = reverse_hash(state_space[i,j], numColors, tile_size)
 
     return grid
 
 # Fully recursive method has unlimited backtracking but greatly extends runtime
 # Should guarantee a valid answer
-def generate_fully_recursive(tilemap, gen_size, tile_size=2,PNG=False, hash_to_num={},num_to_hash={},tile_set={}):
+def generate_fully_recursive(tilemap, gen_size, tile_size=2,PNG=False, hash_to_num={},num_to_hash={},tile_set={},numColors=4):
     if(not PNG):
         map_size = len(tilemap)
 
         hash_to_num, num_to_hash, tile_set = collect_bitwise_tileset(tilemap, map_size, tile_size)
     else:
         map_size = tilemap
-
+    
     num_states = len(tile_set.keys())
 
-    adjacencies = collect_adjacencies_bitwise(hash_to_num, tile_set)
-    rev_adjacencies = collect_reverse_adjacencies(hash_to_num, tile_set)
+    adjacencies = collect_adjacencies_bitwise(hash_to_num, tile_set, numColors)
+    rev_adjacencies = collect_reverse_adjacencies(hash_to_num, tile_set, numColors)
     weights = np.array(list(tile_set.values()))
     args = np.arange(num_states)
 
@@ -87,9 +87,9 @@ def generate_fully_recursive(tilemap, gen_size, tile_size=2,PNG=False, hash_to_n
 
     res = collapse_grid_fully_recursive(cell_space, state_space, args, weights, num_to_hash, 
         hash_to_num, adjacencies, rev_adjacencies, num_states, 0, space_size)
-
+    
     # Return the grid and whether or not the generation was successful (certain tilemaps may have no valid solution)
-    return build_grid_from_cell_space(state_space, gen_size, tile_size), res
+    return build_grid_from_cell_space(state_space, gen_size, tile_size, numColors), res
 
 def collapse_grid_fully_recursive(cell_space, state_space, args, weights, index_to_hash, hash_to_index, adjacencies, rev_adjacencies, num_states, collapse_count, space_size):
     if collapse_count == space_size*space_size:
