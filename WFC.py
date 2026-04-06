@@ -75,7 +75,7 @@ def generate_fully_recursive(tilemap, gen_size, tile_size=2,PNG=False, hash_to_n
 
     num_states = len(tile_set.keys())
 
-    adjacencies = collect_adjacencies_bitwise(hash_to_num, tile_set)
+    # adjacencies = collect_adjacencies_bitwise(hash_to_num, tile_set)
     rev_adjacencies = collect_reverse_adjacencies(hash_to_num, tile_set)
     weights = np.array(list(tile_set.values()))
     args = np.arange(num_states)
@@ -86,12 +86,12 @@ def generate_fully_recursive(tilemap, gen_size, tile_size=2,PNG=False, hash_to_n
     state_space = np.ones((space_size, space_size), dtype=np.int64) * -1
 
     res = collapse_grid_fully_recursive(cell_space, state_space, args, weights, num_to_hash, 
-        hash_to_num, adjacencies, rev_adjacencies, num_states, 0, space_size)
+        hash_to_num, rev_adjacencies, num_states, 0, space_size)
 
     # Return the grid and whether or not the generation was successful (certain tilemaps may have no valid solution)
     return build_grid_from_cell_space(state_space, gen_size, tile_size), res
 
-def collapse_grid_fully_recursive(cell_space, state_space, args, weights, index_to_hash, hash_to_index, adjacencies, rev_adjacencies, num_states, collapse_count, space_size):
+def collapse_grid_fully_recursive(cell_space, state_space, args, weights, index_to_hash, hash_to_index, rev_adjacencies, num_states, collapse_count, space_size):
     if collapse_count == space_size*space_size:
         return True # We were successful!
     
@@ -174,7 +174,7 @@ def collapse_grid_fully_recursive(cell_space, state_space, args, weights, index_
         if is_valid:
             # Recursive call
             result = collapse_grid_fully_recursive(cell_space, state_space, args, weights, 
-                index_to_hash, hash_to_index, adjacencies, rev_adjacencies,  num_states, 
+                index_to_hash, hash_to_index, rev_adjacencies,  num_states, 
                 collapse_count + 1, space_size)
 
             if result:
@@ -221,7 +221,7 @@ if __name__ == '__main__':
     # tilemap[2, 1] = 2
 
     # grid, result = generate_fully_recursive(tilemap, 4, 2)
-    grid, result = generate_fully_recursive(tilemap, 30, 2)
+    grid, result = generate_fully_recursive(tilemap, 50, 2)
     show_im(grid, get_colors())
     # print(result)
     plt.show()
