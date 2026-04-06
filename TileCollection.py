@@ -15,26 +15,56 @@ def show_im(im, colors, ax=None):
     else:
         ax.imshow(temp_im, cmap='terrain', vmin=0, vmax=255)
 
-# TODO - This has a fixed size
-def hash_tile(tile):
-    return int(tile[0,0] + 4 * tile[0, 1] + 16 * tile[1, 0] + 64 * tile[1,1])
+# ------------------------------------------------------------------------
+#
+# Hash based on number of colors
+#
+# ------------------------------------------------------------------------
+def hash_tile(tile,numColors):
+    flat = [pixel for row in tile for pixel in row]
+    hash = 0
+    for i in range(len(flat)):
+        hash += flat[i] * (numColors ** i)
+    return hash
 
-# TODO - This has a fixed size
-def reverse_hash(num):
-    tile = np.zeros(4)
+# ------------------------------------------------------------------------
+#
+# Reverse the Hash based on number of colors
+#
+# ------------------------------------------------------------------------
+def reverse_hash(num, numColors,tile_size):
+    tile = np.zeros(tile_size * tile_size, dtype=np.int64)
     n = num
-    for i in range(len(tile)):
-        tile[i] = n % 4
-        n = n // 4
-    return tile.reshape((2,2))
 
-# TODO - This has a fixed size
+    for i in range(len(tile)):
+        tile[i] = n % numColors
+        n = n // numColors
+
+    return tile.reshape((tile_size, tile_size))
+
+# To create a table that has the tiles and weights
+def build_tile_lookup(tiles, weights, numColors):
+    tile_set  = {}
+
+    for i in range(len(tiles)):
+        h = hash_tile(tiles[i],numColors)
+        tile_set [h] = weights[i]
+
+    hash_to_num = {}
+    num_to_hash = {}
+
+    for i, h in enumerate(tile_set.keys()):
+        hash_to_num[h] = i
+        num_to_hash[i] = h
+
+    return hash_to_num, num_to_hash, tile_set
+
 # This is for matching borders of tiles
-def compare_hashes(h1, h2, t1_border, t2_border):
+def compare_hashes(h1, h2, t1_border, t2_border,numColors):
     assert len(t1_border) == len(t2_border), "Border Sizes Must Match"
 
     for i in range(len(t1_border)):
-        if (h1 // 4**t1_border[i]) % 4 != (h2 // 4**t2_border[i]) % 4:
+        if (h1 // numColors**t1_border[i]) % numColors != (h2 // numColors**t2_border[i]) % numColors:
             return False
     return True
     
@@ -81,7 +111,7 @@ def collect_bitwise_tileset(tilemap, tilemap_size, tile_size):
 
     for i in range(l):
         for j in range(l):
-            val = hash_tile(tiles[i,j])
+            val = hash_tile(tiles[i,j], numColors=4)
 
             if val not in tile_set.keys():
                 tile_set[val] = 1
@@ -98,7 +128,7 @@ def collect_bitwise_tileset(tilemap, tilemap_size, tile_size):
     return hash_to_num, num_to_hash, tile_set
 
 # TODO - Add bitwise operations, generalize to larger tile sizes
-def collect_adjacencies(tile_set):
+def collect_adjacencies(tile_set,numColors=4):
     directions =     ['t',  'tr', 'tl', 'r', 'l',    'b', 'br', 'bl']
     t1_comparisons = [[0,1], [1], [0], [1,3], [0,2], [2,3], [3], [2]]
     t2_comparisons = [[2,3], [2], [3], [0,2], [1,3], [0,1], [0], [1]]
@@ -115,13 +145,13 @@ def collect_adjacencies(tile_set):
             #     continue # Avoid checking adjacencies against yourself
 
             for d in range(len(directions)):
-                if compare_hashes(t, target, t1_comparisons[d], t2_comparisons[d]) and target not in adjacencies[(t, directions[d])]:
+                if compare_hashes(t, target, t1_comparisons[d], t2_comparisons[d], numColors) and target not in adjacencies[(t, directions[d])]:
                     adjacencies[(t, directions[d])].append(target)
     
     return adjacencies
 
 # TODO - generalize to larger tile sizes
-def collect_adjacencies_bitwise(hash_to_num, tile_set):
+def collect_adjacencies_bitwise(hash_to_num, tile_set,numColors):
     directions =     ['t',  'tr', 'tl', 'r', 'l',    'b', 'br', 'bl']
     t1_comparisons = [[0,1], [1], [0], [1,3], [0,2], [2,3], [3], [2]]
     t2_comparisons = [[2,3], [2], [3], [0,2], [1,3], [0,1], [0], [1]]
@@ -135,14 +165,14 @@ def collect_adjacencies_bitwise(hash_to_num, tile_set):
                 # if t == target:
                 #     continue # Avoid checking adjacencies against yourself
             
-                if compare_hashes(t, target, t1_comparisons[d], t2_comparisons[d]):
+                if compare_hashes(t, target, t1_comparisons[d], t2_comparisons[d],numColors):
                     s += 2**hash_to_num[target] # Add bit flag to s
             
             adjacencies[(t, directions[d])] = s
     
     return adjacencies
 
-def collect_reverse_adjacencies(hash_to_num, tile_set):
+def collect_reverse_adjacencies(hash_to_num, tile_set, numColors):
     # Given a state and a direction used to reach it, what did that previous state
     # have to have? (as a bitmask)
     directions =     ['t',  'tr', 'tl', 'r', 'l',    'b', 'br', 'bl']
@@ -155,7 +185,7 @@ def collect_reverse_adjacencies(hash_to_num, tile_set):
             s = 0 # Sum of possible supporting states
 
             for target in tile_set.keys():
-                if compare_hashes(target, t, t1_comparisons[d], t2_comparisons[d]):
+                if compare_hashes(target, t, t1_comparisons[d], t2_comparisons[d], numColors):
                     s += 2**hash_to_num[target]
             
             rev_adjacencies[(t, directions[d])] = s
