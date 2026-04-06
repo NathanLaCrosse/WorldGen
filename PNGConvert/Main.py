@@ -32,7 +32,7 @@ import numpy as np
 
 # Create test
 tile_size = 2 # For sample tiles
-rotation = False # If we want rotations allowed
+rotation = True # If we want rotations allowed
 grid_size = 40 # output grid size
 png_name = "Mount" # Name of the PNG file in the images folder
 

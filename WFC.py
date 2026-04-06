@@ -18,15 +18,75 @@ op_directions = ['b', 'l', 't', 'r']
 t1_comparisons = [[0,1], [1,3], [0,2], [2,3]]
 t2_comparisons = [[2,3], [0,2], [1,3], [0,1]]
 
+def is_tile_possible(cell_space, row, col, tile_index):
+    chunk = tile_index // 64
+    bit = tile_index % 64
+    return (cell_space[row, col, chunk] >> bit) & 1
+
+def set_tile(cell_space, row, col, tile_index):
+    """
+    Collapse a cell to a single tile
+    """
+    num_chunks = cell_space.shape[2]
+    # Clear all chunks first
+    for chunk in range(num_chunks):
+        cell_space[row, col, chunk] = 0
+    # Set the bit corresponding to tile_index
+    chunk = tile_index // 64
+    bit = tile_index % 64
+    cell_space[row, col, chunk] = 1 << bit
+
+def remove_tile(cell_space, row, col, tile_index):
+    """
+    Remove a tile from possible states at a cell
+    """
+    chunk = tile_index // 64
+    bit = tile_index % 64
+    mask = np.uint64(1) << np.uint64(bit)
+    cell_space[row, col, chunk] &= ~mask
+
+def count_possible_tiles(cell_space, row, col):
+    """
+    Count how many tiles are still possible at a cell
+    """
+    count = 0
+    num_chunks = cell_space.shape[2]
+    for chunk in range(num_chunks):
+        x = cell_space[row, col, chunk]
+        while x:
+            count += x & 1
+            x >>= 1
+    return count
+
+def get_possible_tiles(cell_space, row, col, num_states):
+    """
+    Return a list of all tile indices possible at a cell
+    """
+    tiles = []
+    for tile_index in range(num_states):
+        if is_tile_possible(cell_space, row, col, tile_index):
+            tiles.append(tile_index)
+    return tiles
+
+def get_superposition(cell_space, pos):
+    """
+    Return combined int representing all possible tiles at a position
+    """
+    r, c = pos
+    val = 0
+    for chunk in range(cell_space.shape[2]):
+        val |= int(cell_space[r, c, chunk]) << (chunk * 64)
+    return val
 
 def gen_entropy_grid(cell_space, state_space, num_states):
-    entropy_grid = np.zeros_like(cell_space)
+    rows, cols = state_space.shape
+    entropy_grid = np.zeros((rows, cols), dtype=np.int64)
     entropy_grid[state_space != -1] = 100000
 
-    cell_copy = np.copy(cell_space)
-    for i in range(num_states):
-        entropy_grid += 1 & cell_copy
-        cell_copy = cell_copy >> 1
+    for r in range(rows):
+        for c in range(cols):
+            if state_space[r, c] == -1:
+                entropy_grid[r, c] += count_possible_tiles(cell_space, r, c)
 
     return entropy_grid
 
@@ -44,14 +104,12 @@ def superposition_adjacencies(cell_space, index_to_hash, adjacencies, num_states
 def build_allowed_superposition(cell_space, index_to_hash, rev_adjacencies, num_states, source_pos, sink_pos, direction):
     allowed_sink = 0
 
-    c = cell_space[sink_pos]
+    allowed_sink = 0
     for i in range(num_states):
-        # See if the current state is allowed by the source
-        if c & 1 and rev_adjacencies[(index_to_hash[i], direction)] & cell_space[source_pos] != 0:
-            allowed_sink += 2**i
+        if is_tile_possible(cell_space, sink_pos[0], sink_pos[1], i) and \
+           rev_adjacencies[(index_to_hash[i], direction)] & get_superposition(cell_space, source_pos) != 0:
+            allowed_sink |= (1 << i)
 
-        c = c >> 1
-    
     return allowed_sink
 
 def build_grid_from_cell_space(state_space, gen_size, tile_size, numColors):
@@ -82,7 +140,18 @@ def generate_fully_recursive(tilemap, gen_size, tile_size=2,PNG=False, hash_to_n
 
     space_size = gen_size - tile_size + 1
 
-    cell_space = np.ones((space_size, space_size), dtype=np.int64) * (2**num_states-1)
+    num_chunks = num_states // 64 + 1
+
+    cell_space = np.ones((space_size, space_size, num_chunks), dtype=np.uint64)
+
+    # Fill all bits to 1
+    for chunk in range(num_chunks):
+        if chunk == num_chunks - 1:
+            remaining_bits = num_states % 64 or 64
+            cell_space[:, :, chunk] = (1 << remaining_bits) - 1  # this is safe if remaining_bits < 64
+        else:
+            cell_space[:, :, chunk] = np.uint64(0xFFFFFFFFFFFFFFFF)  # all 64 bits set
+
     state_space = np.ones((space_size, space_size), dtype=np.int64) * -1
 
     res = collapse_grid_fully_recursive(cell_space, state_space, args, weights, num_to_hash, 
@@ -105,23 +174,20 @@ def collapse_grid_fully_recursive(cell_space, state_space, args, weights, index_
     w = np.argwhere(entropy_grid == entropy_grid.min())
     row, col = w[np.random.choice(np.arange(w.shape[0]))]
 
-    original_superposition = cell_space[row, col]
+    original_superposition = np.copy(cell_space[row, col, :])
 
-    while cell_space[row, col] > 0:
+    while np.any(cell_space[row, col]):
         queue = deque()
         modifications = deque()
 
         # Collapse the superposition
         # Gather the probability distribution to sample from
-        c = cell_space[row, col]
-        p = np.zeros_like(weights)
-        for i in range(num_states):
-            p[i] = (1 & c) * weights[i]
-            c = c >> 1
+        possible_tiles = get_possible_tiles(cell_space, row, col, num_states)
+        p = np.array([weights[i] for i in possible_tiles], dtype=np.float64)
+        p /= p.sum()
 
-        # Choose a random state index - update board accordingly
-        index = np.random.choice(args, p=p/p.sum())
-        cell_space[row, col] = 2**index
+        index = np.random.choice(possible_tiles, p=p)
+        set_tile(cell_space, row, col, index)  # collapse to a single tile
         state_space[row, col] = index_to_hash[index]
 
         # Add neighbors to propogation queue
@@ -146,11 +212,14 @@ def collapse_grid_fully_recursive(cell_space, state_space, args, weights, index_
                 continue  # Skip if state is collapsed
             
             # update based on given adjacencies
-            old_cell = cell_space[qr, qc]
-            cell_space[qr,qc] &= adj
-            
-            if old_cell != cell_space[qr, qc]:
-                if cell_space[qr, qc] == 0:
+            old_cell = np.copy(cell_space[qr, qc])
+            for tile_index in range(num_states):
+                if not ((adj >> tile_index) & 1):
+                    remove_tile(cell_space, qr, qc, tile_index)
+
+            if not np.array_equal(old_cell, cell_space[qr, qc]):
+                if np.all(cell_space[qr, qc] == 0):
+                    # No tiles possible at this cell
                     is_valid = False
                     break
 
@@ -183,7 +252,7 @@ def collapse_grid_fully_recursive(cell_space, state_space, args, weights, index_
         # If not valid, revert 
         for r, c, old_superposition in reversed(modifications):
             cell_space[r, c] = old_superposition
-        cell_space[row, col] &= ~(2**index)
+        remove_tile(cell_space, row, col, index)
         state_space[row, col] = -1
     
     # There are no possible states that we choose - all end up with an invalid grid
