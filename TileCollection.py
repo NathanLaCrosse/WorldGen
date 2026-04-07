@@ -172,23 +172,53 @@ def collect_adjacencies_bitwise(hash_to_num, tile_set,numColors):
     
     return adjacencies
 
-def collect_reverse_adjacencies(hash_to_num, tile_set, numColors):
-    # Given a state and a direction used to reach it, what did that previous state
-    # have to have? (as a bitmask)
-    directions =     ['t',  'tr', 'tl', 'r', 'l',    'b', 'br', 'bl']
-    t1_comparisons = [[0,1], [1], [0], [1,3], [0,2], [2,3], [3], [2]]
-    t2_comparisons = [[2,3], [2], [3], [0,2], [1,3], [0,1], [0], [1]]
+# def collect_reverse_adjacencies(hash_to_num, tile_set, numColors):
+#     # Given a state and a direction used to reach it, what did that previous state
+#     # have to have? (as a bitmask)
+#     directions =     ['t',  'tr', 'tl', 'r', 'l',    'b', 'br', 'bl']
+#     t1_comparisons = [[0,1], [1], [0], [1,3], [0,2], [2,3], [3], [2]]
+#     t2_comparisons = [[2,3], [2], [3], [0,2], [1,3], [0,1], [0], [1]]
+#     rev_adjacencies = {}
+
+#     for t in tile_set.keys():
+#         for d in range(len(directions)):
+#             s = 0 # Sum of possible supporting states
+
+#             for target in tile_set.keys():
+#                 if compare_hashes(target, t, t1_comparisons[d], t2_comparisons[d], numColors):
+#                     s += 2**hash_to_num[target]
+            
+#             rev_adjacencies[(t, directions[d])] = s
+    
+#     return rev_adjacencies
+
+def collect_reverse_adjacencies(hash_to_num, tile_set, numColors, num_states, 
+    directions=['t','r','b','l'], t1_comparisons=[[0,1],[1,3],[2,3],[0,2]],
+    t2_comparisons=[[2,3],[0,2],[0,1],[1,3]]):
+
+    # Encode an adjacency matrix 
     rev_adjacencies = {}
 
-    for t in tile_set.keys():
-        for d in range(len(directions)):
-            s = 0 # Sum of possible supporting states
+    # Intialize matrices
+    for d in directions:
+        rev_adjacencies[d] = np.zeros((num_states, num_states), dtype=bool)
 
-            for target in tile_set.keys():
-                if compare_hashes(target, t, t1_comparisons[d], t2_comparisons[d], numColors):
-                    s += 2**hash_to_num[target]
-            
-            rev_adjacencies[(t, directions[d])] = s
-    
+    # # Detect adjacencies
+    for source in tile_set.keys():
+        for sink in tile_set.keys():
+
+            for d in range(len(directions)):
+                if compare_hashes(sink, source, t1_comparisons[d], t2_comparisons[d], numColors):
+                    # State i allows neighboring state j
+                    i = hash_to_num[source]
+                    j = hash_to_num[sink]
+                    rev_adjacencies[directions[d]][j, i] = 1
+
+    # key_list = list(tile_set.keys())
+    # for i in range(len(key_list)):
+    #     for j in range(len(key_list)):
+    #         for d in range(len(directions)):
+    #             if compare_hashes(key_list[i], key_list[j], t1_comparisons[d], t2_comparisons[d], numColors):
+    #                 rev_adjacencies[directions[d]][i, j] = 1
+
     return rev_adjacencies
-
