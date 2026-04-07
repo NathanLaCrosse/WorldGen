@@ -219,6 +219,10 @@ def apply_boundary_constraints(cell_space, index_to_hash, num_states, constraint
             queue.append((r, c))
         return True
 
+    # Collect all boundary constraints first
+    boundary_masks = {}
+
+    # Apply top constraints
     if "top" in constraints:
         top = constraints["top"]
         for j in range(space_size):
@@ -228,9 +232,9 @@ def apply_boundary_constraints(cell_space, index_to_hash, num_states, constraint
             for idx in range(num_states):
                 if hash_matches_segment(index_to_hash[idx], segment, numColors, positions):
                     allowed |= 2**idx
-            if not restrict_cell(0, j, allowed):
-                return False
+            boundary_masks[(0, j)] = allowed
 
+    # Apply left constraints
     if "left" in constraints:
         left = constraints["left"]
         for i in range(space_size):
@@ -240,9 +244,13 @@ def apply_boundary_constraints(cell_space, index_to_hash, num_states, constraint
             for idx in range(num_states):
                 if hash_matches_segment(index_to_hash[idx], segment, numColors, positions):
                     allowed |= 2**idx
-            if not restrict_cell(i, 0, allowed):
-                return False
+            if (i, 0) in boundary_masks:
+                # Corner cell - combine with OR (union) instead of overwriting
+                boundary_masks[(i, 0)] |= allowed
+            else:
+                boundary_masks[(i, 0)] = allowed
 
+    # Apply bottom constraints
     if "bottom" in constraints:
         bottom = constraints["bottom"]
         row = space_size - 1
@@ -253,9 +261,13 @@ def apply_boundary_constraints(cell_space, index_to_hash, num_states, constraint
             for idx in range(num_states):
                 if hash_matches_segment(index_to_hash[idx], segment, numColors, positions):
                     allowed |= 2**idx
-            if not restrict_cell(row, j, allowed):
-                return False
+            if (row, j) in boundary_masks:
+                # Corner cell - combine with OR (union)
+                boundary_masks[(row, j)] |= allowed
+            else:
+                boundary_masks[(row, j)] = allowed
 
+    # Apply right constraints
     if "right" in constraints:
         right = constraints["right"]
         col = space_size - 1
@@ -266,8 +278,16 @@ def apply_boundary_constraints(cell_space, index_to_hash, num_states, constraint
             for idx in range(num_states):
                 if hash_matches_segment(index_to_hash[idx], segment, numColors, positions):
                     allowed |= 2**idx
-            if not restrict_cell(i, col, allowed):
-                return False
+            if (i, col) in boundary_masks:
+                # Corner cell - combine with OR (union)
+                boundary_masks[(i, col)] |= allowed
+            else:
+                boundary_masks[(i, col)] = allowed
+
+    # Apply all boundary constraints
+    for (r, c), allowed_mask in boundary_masks.items():
+        if not restrict_cell(r, c, allowed_mask):
+            return False
 
     # Propagate constraint effects through the grid.
     while queue:
