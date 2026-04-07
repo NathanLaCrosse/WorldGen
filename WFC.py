@@ -20,14 +20,12 @@ t2_comparisons = [[2,3], [0,2], [1,3], [0,1]]
 
 
 def gen_entropy_grid(cell_space, state_space, num_states):
-    entropy_grid = np.zeros_like(cell_space)
+    entropy_grid = np.zeros_like(cell_space, dtype=np.int32)
     entropy_grid[state_space != -1] = 100000
-
-    cell_copy = np.copy(cell_space)
-    for i in range(num_states):
-        entropy_grid += 1 & cell_copy
-        cell_copy = cell_copy >> 1
-
+    
+    # Vectorized bit counting instead of loop
+    entropy_grid += np.bitwise_count(cell_space)
+    
     return entropy_grid
 
 def superposition_adjacencies(cell_space, index_to_hash, adjacencies, num_states, direction, row, col):
@@ -103,8 +101,9 @@ def collapse_grid_fully_recursive(cell_space, state_space, args, weights, index_
     if entropy_grid.min() == 0:
         return False
 
-    w = np.argwhere(entropy_grid == entropy_grid.min())
-    row, col = w[np.random.choice(np.arange(w.shape[0]))]
+    # use argmin directly
+    min_idx = np.argmin(entropy_grid)
+    row, col = np.unravel_index(min_idx, entropy_grid.shape)
 
     original_superposition = cell_space[row, col]
 
@@ -331,8 +330,9 @@ def collapse_grid_fully_recursive_chunk(cell_space, state_space, args, weights, 
     if entropy_grid.min() == 0:
         return False
 
-    w = np.argwhere(entropy_grid == entropy_grid.min())
-    row, col = w[np.random.choice(np.arange(w.shape[0]))]
+    # use argmin directly
+    min_idx = np.argmin(entropy_grid)
+    row, col = np.unravel_index(min_idx, entropy_grid.shape)
 
     original_superposition = cell_space[row, col]
 
@@ -401,7 +401,7 @@ def collapse_grid_fully_recursive_chunk(cell_space, state_space, args, weights, 
         # If valid, recurse deeper.
         if is_valid:
             # Recursive call
-            result = collapse_grid_fully_recursive(cell_space, state_space, args, weights, 
+            result = collapse_grid_fully_recursive_chunk(cell_space, state_space, args, weights, 
                 index_to_hash, hash_to_index, adjacencies, rev_adjacencies,  num_states, 
                 collapse_count + 1, space_size)
 

@@ -33,20 +33,20 @@ import numpy as np
 
 # Create test
 tile_size = 2 # For sample tiles
-rotation = False # If we want rotations allowed
+rotation = True # If we want rotations allowed
 grid_size = 40 # output grid size
-png_name = "Mount" # Name of the PNG file in the images folder
-chunks = 4
+png_name = "4Color" # Name of the PNG file in the images folder
+chunks = 6
 
 tiles, weights = imageLoad(f"PNGConvert/images/{png_name}.png",rotation, tile_size)
 
 app = Ursina()
 
 # TODO: Use a mesh instead of individual cubes for better performance. This is just for testing purposes
-sampleTiles(tiles, tile_size)
+#sampleTiles(tiles, tile_size)
 
-WaveFunc(tiles, weights, grid_size, tile_size)
-#chunkBasedMap(tiles, weights, grid_size, tile_size,chunks)
+#WaveFunc(tiles, weights, grid_size, tile_size)
+chunkBasedMap(tiles, weights, grid_size, tile_size,chunks)
 
 
 # Sets up the Ursina enviornment
