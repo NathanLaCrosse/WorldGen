@@ -1,6 +1,3 @@
-
-
-
 import sys
 import os
 
@@ -12,17 +9,24 @@ import numpy as np
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def chunkBasedMap(tiles, weights, grid_size, tile_size, numberOfChunks):
-    # Get the tile to color mappings
     hash_to_num, num_to_hash, tile_set, index_to_color, color_to_index, numColors = tileToColor(tiles, weights)
+    final_size = numberOfChunks * (grid_size - 1) + 1
 
     max_attempts_per_chunk = 10
     max_attempts_full_map = 5
 
     for map_attempt in range(max_attempts_full_map):
+
+        # Reset per attempt
+        full_grid = np.zeros((final_size, final_size), dtype=int)
+
         chunk_edges = [[{} for _ in range(numberOfChunks)] for _ in range(numberOfChunks)]
         chunk_grids = [[None for _ in range(numberOfChunks)] for _ in range(numberOfChunks)]
         full_map_success = True
 
+        # -----------------------------
+        # GENERATE CHUNKS
+        # -----------------------------
         for i in range(numberOfChunks):
             for j in range(numberOfChunks):
                 constraints = {}
@@ -64,12 +68,35 @@ def chunkBasedMap(tiles, weights, grid_size, tile_size, numberOfChunks):
             if not full_map_success:
                 break
 
-        if full_map_success:
-            for i in range(numberOfChunks):
-                for j in range(numberOfChunks):
-                    x_offset = j * grid_size
-                    y_offset = i * grid_size
-                    startMesh(chunk_grids[i][j], index_to_color, x_offset, y_offset)
-            return
+        # If failed, retry whole map
+        if not full_map_success:
+            continue
 
-    raise RuntimeError(f"Unable to generate a complete {numberOfChunks}x{numberOfChunks} chunk map after {max_attempts_full_map} attempts") 
+        # -----------------------------
+        # BUILD FULL GRID
+        # -----------------------------
+        y_cursor = 0
+        for i in range(numberOfChunks):
+            x_cursor = 0
+            for j in range(numberOfChunks):
+                chunk = chunk_grids[i][j]
+
+                if i > 0:
+                    chunk = chunk[1:, :]
+                if j > 0:
+                    chunk = chunk[:, 1:]
+
+                h, w = chunk.shape
+
+                full_grid[y_cursor:y_cursor+h, x_cursor:x_cursor+w] = chunk
+
+                x_cursor += w  
+            y_cursor += h   
+
+        startMesh(full_grid, index_to_color)
+        return  
+
+    # Only reached if ALL attempts fail
+    raise RuntimeError(
+        f"Unable to generate a complete {numberOfChunks}x{numberOfChunks} chunk map after {max_attempts_full_map} attempts"
+    )
