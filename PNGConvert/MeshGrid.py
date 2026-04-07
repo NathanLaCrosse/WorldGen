@@ -13,8 +13,8 @@ from ursina import *
 #
 # ------------------------------------------------------------------------
 
-def startMesh(world_grid, index_to_color):
-    create_mesh(world_grid,index_to_color)
+def startMesh(world_grid, index_to_color, x_offset=0, y_offset=0):
+    create_mesh(world_grid, index_to_color, x_offset, y_offset)
     return
 
 # ------------------------------------------------------------------------
@@ -25,7 +25,7 @@ def startMesh(world_grid, index_to_color):
 #
 # ------------------------------------------------------------------------
 
-def create_mesh(world_grid, index_to_color, tile_size=1):
+def create_mesh(world_grid, index_to_color, x_offset=0, y_offset=0, tile_size=1):
     tiles_holder = []
     triangles = []
     colors = []
@@ -56,8 +56,7 @@ def create_mesh(world_grid, index_to_color, tile_size=1):
 
     # Creates the mesh, then forms as an entity
     mesh = Mesh(vertices=tiles_holder, triangles=triangles, colors=colors, mode='triangle')
-    entity = Entity(model=mesh, position=(rows, cols, 0))
-    entity.rotation_z = 180
+    entity = Entity(model=mesh, position=(x_offset, y_offset, 0))
     return
 
 

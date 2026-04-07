@@ -12,6 +12,7 @@ from ursina import *
 from ImagePNG import imageLoad 
 from SampleDisplay import sampleTiles
 from WaveFunc import WaveFunc 
+from ChunkBasedMap import chunkBasedMap
 
 import numpy as np
 
@@ -35,6 +36,7 @@ tile_size = 2 # For sample tiles
 rotation = False # If we want rotations allowed
 grid_size = 40 # output grid size
 png_name = "Mount" # Name of the PNG file in the images folder
+chunks = 4
 
 tiles, weights = imageLoad(f"PNGConvert/images/{png_name}.png",rotation, tile_size)
 
@@ -44,6 +46,7 @@ app = Ursina()
 sampleTiles(tiles, tile_size)
 
 WaveFunc(tiles, weights, grid_size, tile_size)
+#chunkBasedMap(tiles, weights, grid_size, tile_size,chunks)
 
 
 # Sets up the Ursina enviornment
@@ -52,8 +55,10 @@ WaveFunc(tiles, weights, grid_size, tile_size)
 DirectionalLight().look_at(Vec3(1, -1, -1))
 AmbientLight(color=color.rgba(100, 100, 100, 0.5))
 
+camera_spot = grid_size * chunks / 2
+
 # Camera
-camera.position = (grid_size/2, grid_size/2, -(2*grid_size))
+camera.position = (camera_spot, camera_spot, -(chunks*grid_size*2))
 camera.look_at(Vec3(grid_size/2, -5, 0))
 mouse.locked = True
 
