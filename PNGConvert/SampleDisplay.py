@@ -10,8 +10,8 @@ Dylan Dudley - 03/27/2026
 ----------------------------------------------------------------"""
 
 from ursina import *
-from ImagePNG import *
-from Blocks import create_block
+from PNGConvert.ImagePNG import *
+from PNGConvert.Blocks import create_block
 import numpy as np
 
 # ------------------------------------------------------------------------

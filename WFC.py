@@ -195,6 +195,7 @@ def collapse_grid_fully_recursive(cell_space, state_space, args, weights, index_
 
 
 if __name__ == '__main__':
+
     tilemap = np.ones((11,10))
 
     tilemap[0:2, :] = 3
@@ -211,14 +212,8 @@ if __name__ == '__main__':
     tilemap[7, 4:8] = 0
     tilemap[8:10, 5:8] = 0
 
-    # tilemap = np.ones((5,5)) * 3
-
-    # tilemap[2:5, 2:5] = 2
-    # tilemap[1, 2] = 2
-    # tilemap[2, 1] = 2
-
     # grid, result = generate_fully_recursive(tilemap, 4, 2)
-    grid, result = generate_fully_recursive(tilemap, 64, 2)
+    grid, result = generate_fully_recursive(tilemap, 32, 2)
     show_im(grid, get_colors())
-    # print(result)
+    print(result)
     plt.show()
