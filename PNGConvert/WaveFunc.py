@@ -15,8 +15,8 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from WFC import generate_fully_recursive
-from MeshGrid import startMesh
-from SampleDisplay import sample_mesh
+from PNGConvert.MeshGrid import startMesh
+from PNGConvert.SampleDisplay import sample_mesh
 from TileCollection import hash_tile, build_tile_lookup
 
 # ------------------------------------------------------------------------
