@@ -35,7 +35,7 @@ def WaveFunc(tiles, weights, grid_size, tile_size):
     startMesh(grid[0], index_to_color)
 
     # TODO: Fix this
-    #sample_mesh(tiles, color_to_index)
+    sample_mesh(tiles, color_to_index, index_to_color, tile_size)
     
 
     return 

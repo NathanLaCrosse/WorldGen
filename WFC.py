@@ -279,8 +279,8 @@ def apply_boundary_constraints(cell_space, index_to_hash, num_states, constraint
                 if hash_matches_segment(index_to_hash[idx], segment, numColors, positions):
                     allowed |= 2**idx
             if (i, col) in boundary_masks:
-                # Corner cell - combine with OR (union)
-                boundary_masks[(i, col)] |= allowed
+                # Corner cell 
+                boundary_masks[(i, col)] &= allowed
             else:
                 boundary_masks[(i, col)] = allowed
 
@@ -332,7 +332,7 @@ def generate_fully_recursive_chunk(tilemap, gen_size, tile_size=2,PNG=False, has
             tile_size, numColors, rev_adjacencies)
         if not valid:
             return None, False
-
+    
     res = collapse_grid_fully_recursive_chunk(cell_space, state_space, args, weights, num_to_hash, 
         hash_to_num, adjacencies, rev_adjacencies, num_states, 0, space_size)
     

@@ -3,6 +3,7 @@ import os
 
 # Add parent directory to Python path
 from MeshGrid import startMesh
+from PNGConvert.SampleDisplay import sample_mesh
 from WaveFunc import tileToColor
 from WFC import generate_fully_recursive_chunk
 import numpy as np
@@ -10,9 +11,12 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def chunkBasedMap(tiles, weights, grid_size, tile_size, numberOfChunks):
     hash_to_num, num_to_hash, tile_set, index_to_color, color_to_index, numColors = tileToColor(tiles, weights)
+    
+    sample_mesh(tiles, color_to_index, index_to_color, tile_size)
+
     final_size = numberOfChunks * (grid_size - 1) + 1
 
-    max_attempts_per_chunk = 10
+    max_attempts_per_chunk = 1
     max_attempts_full_map = 5
 
     for map_attempt in range(max_attempts_full_map):
@@ -53,9 +57,14 @@ def chunkBasedMap(tiles, weights, grid_size, tile_size, numberOfChunks):
                     if success:
                         break
 
+                # if not success:
+                #     full_map_success = False
+                #     break
                 if not success:
-                    full_map_success = False
-                    break
+                    # Leave chunk as blank (zeros)
+                    chunk_grids[i][j] = np.zeros((grid_size, grid_size), dtype=int)
+                    chunk_edges[i][j] = {}
+                    continue
 
                 chunk_grids[i][j] = grid
                 chunk_edges[i][j] = {
@@ -69,8 +78,8 @@ def chunkBasedMap(tiles, weights, grid_size, tile_size, numberOfChunks):
                 break
 
         # If failed, retry whole map
-        if not full_map_success:
-            continue
+        # if not full_map_success:
+        #     continue
 
         # -----------------------------
         # BUILD FULL GRID

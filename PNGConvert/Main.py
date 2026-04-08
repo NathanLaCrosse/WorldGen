@@ -34,18 +34,18 @@ import numpy as np
 # Create test
 tile_size = 2 # For sample tiles
 rotation = True # If we want rotations allowed
-grid_size = 50 # output grid size
+grid_size = 15 # output grid size
 png_name = "4Color" # Name of the PNG file in the images folder
-chunks = 6 # number of chunks to split the map into for better performance
+chunks = 10 # number of chunks to split the map into for better performance
 
 tiles, weights = imageLoad(f"PNGConvert/images/{png_name}.png",rotation, tile_size)
 
-
-# TODO: Use a mesh instead of individual cubes for better performance. This is just for testing purposes
-#sampleTiles(tiles, tile_size)
-
+# Single grid generation
 #WaveFunc(tiles, weights, grid_size, tile_size)
+
+# Chunk based grid generation, can create large maps, but can fail with more restrictive tile sets
 chunkBasedMap(tiles, weights, grid_size, tile_size,chunks) # Works well with versitile sample tiles, but can fail with more restrictive ones
+
 app = Ursina()
 
 # Sets up the Ursina enviornment
@@ -64,9 +64,14 @@ mouse.locked = True
 def input(key):
     if key == 'q':
         application.quit()
+    if key == 'backspace':
+        camera.position = (camera_spot, camera_spot, -(chunks * grid_size * 2))
+        camera.look_at(Vec3(grid_size/2, -5, 0))
 
 def update():
-    speed = 5 * time.dt
+    base_speed = 5
+    speed_multiplier = 10 if held_keys['shift'] else 1
+    speed = base_speed * speed_multiplier * time.dt
 
     if held_keys['w']:
         camera.position += camera.forward * speed
