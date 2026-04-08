@@ -245,8 +245,8 @@ def apply_boundary_constraints(cell_space, index_to_hash, num_states, constraint
                 if hash_matches_segment(index_to_hash[idx], segment, numColors, positions):
                     allowed |= 2**idx
             if (i, 0) in boundary_masks:
-                # Corner cell - combine with OR (union) instead of overwriting
-                boundary_masks[(i, 0)] |= allowed
+                # Corner cell 
+                boundary_masks[(i, 0)] &= allowed
             else:
                 boundary_masks[(i, 0)] = allowed
 
@@ -262,8 +262,8 @@ def apply_boundary_constraints(cell_space, index_to_hash, num_states, constraint
                 if hash_matches_segment(index_to_hash[idx], segment, numColors, positions):
                     allowed |= 2**idx
             if (row, j) in boundary_masks:
-                # Corner cell - combine with OR (union)
-                boundary_masks[(row, j)] |= allowed
+                # Corner cell 
+                boundary_masks[(row, j)] &= allowed
             else:
                 boundary_masks[(row, j)] = allowed
 

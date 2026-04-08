@@ -34,9 +34,9 @@ import numpy as np
 # Create test
 tile_size = 2 # For sample tiles
 rotation = True # If we want rotations allowed
-grid_size = 15 # output grid size
+grid_size = 10 # output grid size
 png_name = "4Color" # Name of the PNG file in the images folder
-chunks = 10 # number of chunks to split the map into for better performance
+chunks = 15 # number of chunks to split the map into for better performance
 
 tiles, weights = imageLoad(f"PNGConvert/images/{png_name}.png",rotation, tile_size)
 
