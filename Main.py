@@ -10,28 +10,44 @@ import matplotlib.pyplot as plt
 sys.setrecursionlimit(10**6)
 
 if __name__ == '__main__':
-    gen_size = 64
+    gen_size = 17
     tile_size = 3
+    stride = 2
 
-    tiles, weights = imageLoad(f"testim.png", False, tile_size=tile_size)
+    tiles, weights = imageLoad(f"island.png", False, tile_size=tile_size)
     hash_to_num, num_to_hash, tile_set, index_to_color, color_to_index, numColors = tileToColor(tiles, weights)
     PNG=True
 
-    random_hash = 163840
-    grid = reverse_hash(random_hash, numColors, tile_size)
-    im = np.zeros((3,3,3), dtype=np.uint8)
-    for i, j in np.ndindex((3,3)):
+    # random_hash = 163840
+
+    # States 4 & 16
+    # grid = reverse_hash(num_to_hash[4], numColors, tile_size)
+    # im1 = np.zeros((3,3,3), dtype=np.uint8)
+    # for i, j in np.ndindex((3,3)):
+    #     color_tuple = index_to_color[grid[i,j]]
+
+    #     im1[i,j] = np.array(color_tuple)
+    # grid = reverse_hash(num_to_hash[18], numColors, tile_size)
+    # im2 = np.zeros((3,3,3), dtype=np.uint8)
+    # for i, j in np.ndindex((3,3)):
+    #     color_tuple = index_to_color[grid[i,j]]
+
+    #     im2[i,j] = np.array(color_tuple)
+
+    # fig, ax = plt.subplots(1,2)
+    # ax[0].imshow(im1)
+    # ax[1].imshow(im2)
+    # plt.show()
+    
+    grid, result = generate_fully_recursive(None, gen_size, tile_size, stride, PNG, hash_to_num, num_to_hash, tile_set, numColors)
+
+    im = np.zeros((gen_size, gen_size, 3), dtype=np.uint8)
+    for i, j in np.ndindex((gen_size, gen_size)):
         color_tuple = index_to_color[grid[i,j]]
 
         im[i,j] = np.array(color_tuple)
-    
-    # grid, result = generate_fully_recursive(None, gen_size, tile_size, PNG, hash_to_num, num_to_hash, tile_set, numColors)
 
-    # im = np.zeros((gen_size, gen_size, 3), dtype=np.uint8)
-    # for i, j in np.ndindex((gen_size, gen_size)):
-    #     color_tuple = index_to_color[grid[i,j]]
-
-    #     im[i,j] = np.array(color_tuple)
+    print(result)
 
     plt.imshow(im)
     plt.show()

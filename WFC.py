@@ -4,13 +4,6 @@ import sys
 
 sys.setrecursionlimit(10**6)
 
-# dir_steps = [(-1, 0), (-1, 1), (-1, -1), (0, 1), (0, -1), (1, 0), (1, 1), (1, -1)]
-# directions = ['t', 'tr', 'tl', 'r', 'l', 'b', 'br', 'bl']
-# op_directions = ['b', 'bl', 'br', 'l', 'r', 't', 'tl', 'tr']
-
-# t1_comparisons = [[0,1], [1], [0], [1,3], [0,2], [2,3], [3], [2]]
-# t2_comparisons = [[2,3], [2], [3], [0,2], [1,3], [0,1], [0], [1]]
-
 directions = ['t', 'r', 'b', 'l']
 dir_steps = [(-1,0), (0,1), (1,0), (0,-1)]
 op_directions = ['b', 'l', 't', 'r']
@@ -36,18 +29,26 @@ def build_allowed_superposition(cell_space, index_to_hash, rev_adjacencies, num_
     
     return allowed_states & cell_space[sink_pos]
 
-def build_grid_from_cell_space(state_space, gen_size, tile_size, numColors):
+def build_grid_from_cell_space(state_space, gen_size, space_size, tile_size, numColors, stride):
     grid = np.zeros((gen_size,gen_size), dtype=np.int64)
 
-    space_size = gen_size - tile_size + 1
-    for i, j in np.ndindex((space_size, space_size)):
-        grid[i:i+tile_size, j:j+tile_size] = reverse_hash(state_space[i,j], numColors, tile_size)
+    # space_size = gen_size - tile_size + 1
+    # for i, j in np.ndindex((space_size, space_size)):
+    #     grid[i:i+tile_size, j:j+tile_size] = reverse_hash(state_space[i,j], numColors, tile_size)
+
+    for i in range(0, space_size):
+        for j in range(0, space_size):
+            r = i*stride
+            c = j*stride
+            grid[r:r+tile_size, c:c+tile_size] = reverse_hash(state_space[i,j], numColors, tile_size)
 
     return grid
 
 # Fully recursive method has unlimited backtracking but greatly extends runtime
 # Should guarantee a valid answer
-def generate_fully_recursive(tilemap, gen_size, tile_size=2,PNG=False, hash_to_num={},num_to_hash={},tile_set={},numColors=4):
+def generate_fully_recursive(tilemap, gen_size, tile_size=2,stride=1,PNG=False, hash_to_num={},num_to_hash={},tile_set={},numColors=4):
+    assert (gen_size - tile_size) % stride == 0, "Incompatible Tile/Stride/Grid_Size Combination"
+    
     if(not PNG):
         map_size = len(tilemap)
 
@@ -57,13 +58,14 @@ def generate_fully_recursive(tilemap, gen_size, tile_size=2,PNG=False, hash_to_n
     
     num_states = len(tile_set.keys())
 
-    rev_adjacencies = collect_reverse_adjacencies(hash_to_num, tile_set, numColors, num_states)
+    rev_adjacencies = collect_reverse_adjacencies(hash_to_num, tile_set, numColors, num_states, tile_size=tile_size, stride=stride)
     
     # Stuff for sampling from superpositions
     weights = np.array(list(tile_set.values()))
     args = np.arange(num_states)
 
-    space_size = gen_size - tile_size + 1
+    # space_size = gen_size - tile_size + 1
+    space_size = (gen_size - tile_size)//stride + 1
 
     cell_space = np.ones((space_size, space_size, num_states), dtype=bool)
     state_space = np.ones((space_size, space_size), dtype=np.int64) * -1
@@ -72,7 +74,7 @@ def generate_fully_recursive(tilemap, gen_size, tile_size=2,PNG=False, hash_to_n
         hash_to_num, rev_adjacencies, num_states, 0, space_size)
 
     # Return the grid and whether or not the generation was successful (certain tilemaps may have no valid solution)
-    return build_grid_from_cell_space(state_space, gen_size, tile_size, numColors), res
+    return build_grid_from_cell_space(state_space, gen_size, space_size, tile_size, numColors, stride), res
 
 def collapse_grid_fully_recursive(cell_space, state_space, args, weights, index_to_hash, hash_to_index, rev_adjacencies, num_states, collapse_count, space_size, entropy_grid = None):
     if collapse_count == space_size*space_size:
