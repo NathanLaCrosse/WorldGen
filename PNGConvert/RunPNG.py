@@ -30,13 +30,14 @@ import numpy as np
 # The rest is setting up our ursina enviornment
 #
 # ------------------------------------------------------------------------
-def RunPNG(tile_size = 2, rotation = True, grid_size = 15, png_name = "RedDot", chunks = 10, wave = True):
+def RunPNG(tile_size = 2, rotation = True, grid_size = 15, png_name = "RedDot", chunks = 10, wave = True, stride = 1):
     # Create test
     tile_size = tile_size # For sample tiles
     rotation = rotation # If we want rotations allowed
     grid_size = grid_size # output grid size
     png_name = png_name # Name of the PNG file in the images folder
     chunks = chunks # number of chunks to split the map into for better performance
+    stride = stride # stride for chunk generation
 
     tiles, weights = imageLoad(f"PNGConvert/images/{png_name}.png",rotation, tile_size)
 
@@ -45,6 +46,6 @@ def RunPNG(tile_size = 2, rotation = True, grid_size = 15, png_name = "RedDot", 
         WaveFunc(tiles, weights, grid_size, tile_size)
     else:
         # Chunk based grid generation, can create large maps, but can fail with more restrictive tile sets
-        chunkBasedMap(tiles, weights, grid_size, tile_size,chunks) # Works well with versitile sample tiles, but can fail with more restrictive ones
+        chunkBasedMap(tiles, weights, grid_size, tile_size,chunks, stride) # Works well with versitile sample tiles, but can fail with more restrictive ones
 
     return

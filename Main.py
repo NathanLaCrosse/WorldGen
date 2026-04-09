@@ -1,68 +1,75 @@
-from PNGConvert.RunPNG import RunPNG
-from Generation_3D.Main_3D import ThreeD_Main
-from ursina import *
-import numpy as np
+from TileCollection import *
+from collections import deque
+import sys
 
-grid_size = 15 # output grid size
-chunks = 1 # number of chunks to split the map into for better performance
-tile_size = 2 # For sample tiles
-rotation = True # If we want rotations allowed
-png_name = "4Color" # Name of the PNG file in the images folder
-wave = False # If true, uses the single grid generation, if false uses the chunk based generation
+from PNGConvert.ImagePNG import imageLoad
+from PNGConvert.WaveFunc import tileToColor
+from WFC import generate_fully_recursive
+import matplotlib.pyplot as plt
 
-#RunPNG(tile_size = tile_size, rotation = rotation, grid_size = grid_size, png_name = png_name, chunks = chunks, wave = wave)
+sys.setrecursionlimit(10**6)
 
-ThreeD_Main()
+if __name__ == '__main__':
+    gen_size = 17
+    tile_size = 3
+    stride = 2
 
-app = Ursina()
+    tiles, weights = imageLoad(f"island.png", False, tile_size=tile_size)
+    hash_to_num, num_to_hash, tile_set, index_to_color, color_to_index, numColors = tileToColor(tiles, weights)
+    PNG=True
 
-# Sets up the Ursina enviornment
+    # random_hash = 163840
 
-# Lighting
-DirectionalLight().look_at(Vec3(1, -1, -1))
-AmbientLight(color=color.rgba(100, 100, 100, 0.5))
+    # States 4 & 16
+    # grid = reverse_hash(num_to_hash[4], numColors, tile_size)
+    # im1 = np.zeros((3,3,3), dtype=np.uint8)
+    # for i, j in np.ndindex((3,3)):
+    #     color_tuple = index_to_color[grid[i,j]]
 
-camera_spot = grid_size * chunks / 2
+    #     im1[i,j] = np.array(color_tuple)
+    # grid = reverse_hash(num_to_hash[18], numColors, tile_size)
+    # im2 = np.zeros((3,3,3), dtype=np.uint8)
+    # for i, j in np.ndindex((3,3)):
+    #     color_tuple = index_to_color[grid[i,j]]
 
-# Camera
-camera.position = (camera_spot, camera_spot, -(chunks*grid_size*2))
-camera.look_at(Vec3(grid_size/2, -5, 0))
+    #     im2[i,j] = np.array(color_tuple)
 
+    # fig, ax = plt.subplots(1,2)
+    # ax[0].imshow(im1)
+    # ax[1].imshow(im2)
+    # plt.show()
+    
+    grid, result = generate_fully_recursive(None, gen_size, tile_size, stride, PNG, hash_to_num, num_to_hash, tile_set, numColors)
 
-mouse.locked = True
+    im = np.zeros((gen_size, gen_size, 3), dtype=np.uint8)
+    for i, j in np.ndindex((gen_size, gen_size)):
+        color_tuple = index_to_color[grid[i,j]]
 
-def input(key):
-    if key == 'q':
-        application.quit()
-    if key == 'backspace':
-        camera.position = (camera_spot, camera_spot, -(chunks * grid_size * 2))
-        camera.look_at(Vec3(grid_size/2, -5, 0))
+        im[i,j] = np.array(color_tuple)
 
-def update():
-    base_speed = 5
-    speed_multiplier = 10 if held_keys['shift'] else 1
-    speed = base_speed * speed_multiplier * time.dt
+    print(result)
 
-    if held_keys['w']:
-        camera.position += camera.forward * speed
-    if held_keys['s']:
-        camera.position -= camera.forward * speed
-    if held_keys['a']:
-        camera.position -= camera.right * speed
-    if held_keys['d']:
-        camera.position += camera.right * speed
+    plt.imshow(im)
+    plt.show()
 
-    # Move up
-    if held_keys['space']:
-        camera.position += Vec3(0, speed * 20 * time.dt, 0)
-    # Move down
-    if held_keys['control']:
-        camera.position -= Vec3(0, speed * 20 * time.dt, 0)
+    # tilemap = np.ones((11,10))
 
-    camera.rotation_y += mouse.velocity[0] * 40
-    camera.rotation_x -= mouse.velocity[1] * 40
-    camera.rotation_x = clamp(camera.rotation_x, -90, 90)
+    # tilemap[0:2, :] = 3
+    # tilemap[2:3, :7] = 3
+    # tilemap[3:5, :5] = 3
+    # tilemap[4, 5:7] = 3
+    # tilemap[5, :3] = 3
+    # tilemap[2, -1] = 3
 
-app.run()
+    # tilemap[1:3, 1:3] = 2
+    # tilemap[1, 3] = 2
+    # tilemap[2,4] = 2
 
+    # tilemap[7, 4:8] = 0
+    # tilemap[8:10, 5:8] = 0
 
+    # grid, result = generate_fully_recursive(tilemap, 4, 2)
+    # grid, result = generate_fully_recursive(tilemap, 64, 2)
+    # show_im(grid, get_colors())
+    # print(result)
+    # plt.show()

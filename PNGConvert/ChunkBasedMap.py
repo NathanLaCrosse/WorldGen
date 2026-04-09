@@ -5,15 +5,15 @@ import os
 from PNGConvert.MeshGrid import startMesh
 from PNGConvert.SampleDisplay import sample_mesh
 from PNGConvert.WaveFunc import tileToColor
-from WFC import generate_fully_recursive_chunk
+from WFC import generate_fully_recursive
 import numpy as np
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-def chunkBasedMap(tiles, weights, grid_size, tile_size, numberOfChunks):
+def chunkBasedMap(tiles, weights, grid_size, tile_size, numberOfChunks, stride):
     hash_to_num, num_to_hash, tile_set, index_to_color, color_to_index, numColors = tileToColor(tiles, weights)
     
     sample_mesh(tiles, color_to_index, index_to_color, tile_size)
-
+    
     final_size = numberOfChunks * (grid_size - 1) + 1
 
     max_attempts_per_chunk = 1
@@ -43,10 +43,11 @@ def chunkBasedMap(tiles, weights, grid_size, tile_size, numberOfChunks):
 
                 success = False
                 for attempt in range(max_attempts_per_chunk):
-                    grid, success = generate_fully_recursive_chunk(
+                    grid, success = generate_fully_recursive(
                         None,
                         grid_size,
                         tile_size,
+                        stride,
                         True,
                         hash_to_num,
                         num_to_hash,
@@ -57,9 +58,6 @@ def chunkBasedMap(tiles, weights, grid_size, tile_size, numberOfChunks):
                     if success:
                         break
 
-                # if not success:
-                #     full_map_success = False
-                #     break
                 if not success:
                     # Leave chunk as blank (zeros)
                     chunk_grids[i][j] = np.zeros((grid_size, grid_size), dtype=int)
@@ -76,10 +74,6 @@ def chunkBasedMap(tiles, weights, grid_size, tile_size, numberOfChunks):
 
             if not full_map_success:
                 break
-
-        # If failed, retry whole map
-        # if not full_map_success:
-        #     continue
 
         # -----------------------------
         # BUILD FULL GRID

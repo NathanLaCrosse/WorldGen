@@ -4,195 +4,12 @@ import sys
 
 sys.setrecursionlimit(10**6)
 
-# dir_steps = [(-1, 0), (-1, 1), (-1, -1), (0, 1), (0, -1), (1, 0), (1, 1), (1, -1)]
-# directions = ['t', 'tr', 'tl', 'r', 'l', 'b', 'br', 'bl']
-# op_directions = ['b', 'bl', 'br', 'l', 'r', 't', 'tl', 'tr']
-
-# t1_comparisons = [[0,1], [1], [0], [1,3], [0,2], [2,3], [3], [2]]
-# t2_comparisons = [[2,3], [2], [3], [0,2], [1,3], [0,1], [0], [1]]
-
 directions = ['t', 'r', 'b', 'l']
 dir_steps = [(-1,0), (0,1), (1,0), (0,-1)]
 op_directions = ['b', 'l', 't', 'r']
 
 t1_comparisons = [[0,1], [1,3], [0,2], [2,3]]
 t2_comparisons = [[2,3], [0,2], [1,3], [0,1]]
-
-
-def gen_entropy_grid(cell_space, state_space, num_states):
-    entropy_grid = np.zeros_like(cell_space, dtype=np.int32)
-    entropy_grid[state_space != -1] = 100000
-    
-    # Vectorized bit counting instead of loop
-    entropy_grid += np.bitwise_count(cell_space)
-    
-    return entropy_grid
-
-def superposition_adjacencies(cell_space, index_to_hash, adjacencies, num_states, direction, row, col):
-    allowed_adjacencies = 0
-
-    c = cell_space[row, col]
-    for i in range(num_states):
-        if c & 1:
-            allowed_adjacencies |= adjacencies[(index_to_hash[i], direction)]
-        c = c >> 1
-    
-    return allowed_adjacencies
-
-def build_allowed_superposition(cell_space, index_to_hash, rev_adjacencies, num_states, source_pos, sink_pos, direction):
-    allowed_sink = 0
-
-    c = cell_space[sink_pos]
-    for i in range(num_states):
-        # See if the current state is allowed by the source
-        if c & 1 and rev_adjacencies[(index_to_hash[i], direction)] & cell_space[source_pos] != 0:
-            allowed_sink += 2**i
-
-        c = c >> 1
-    
-    return allowed_sink
-
-def build_grid_from_cell_space(state_space, gen_size, tile_size, numColors):
-    grid = np.zeros((gen_size,gen_size), dtype=np.int64)
-
-    space_size = gen_size - tile_size + 1
-    for i, j in np.ndindex((space_size, space_size)):
-        grid[i:i+tile_size, j:j+tile_size] = reverse_hash(state_space[i,j], numColors, tile_size)
-
-    return grid
-
-
-# Fully recursive method has unlimited backtracking but greatly extends runtime
-# Should guarantee a valid answer
-def generate_fully_recursive(tilemap, gen_size, tile_size=2,PNG=False, hash_to_num={},num_to_hash={},tile_set={},numColors=4):
-    if(not PNG):
-        map_size = len(tilemap)
-
-        hash_to_num, num_to_hash, tile_set = collect_bitwise_tileset(tilemap, map_size, tile_size)
-    else:
-        map_size = tilemap
-    
-    num_states = len(tile_set.keys())
-
-    adjacencies = collect_adjacencies_bitwise(hash_to_num, tile_set, numColors)
-    rev_adjacencies = collect_reverse_adjacencies(hash_to_num, tile_set, numColors)
-    weights = np.array(list(tile_set.values()))
-    args = np.arange(num_states)
-
-    space_size = gen_size - tile_size + 1
-
-    cell_space = np.ones((space_size, space_size), dtype=np.int64) * (2**num_states-1)
-    state_space = np.ones((space_size, space_size), dtype=np.int64) * -1
-
-    res = collapse_grid_fully_recursive(cell_space, state_space, args, weights, num_to_hash, 
-        hash_to_num, adjacencies, rev_adjacencies, num_states, 0, space_size)
-    
-    # Return the grid and whether or not the generation was successful (certain tilemaps may have no valid solution)
-    return build_grid_from_cell_space(state_space, gen_size, tile_size, numColors), res
-
-def collapse_grid_fully_recursive(cell_space, state_space, args, weights, index_to_hash, hash_to_index, adjacencies, rev_adjacencies, num_states, collapse_count, space_size):
-    if collapse_count == space_size*space_size:
-        return True # We were successful!
-    
-    # Find the next available cell via lowest entropy
-    entropy_grid = gen_entropy_grid(cell_space, state_space, num_states)
-
-    # If there is a state with zero entropy, it has no options, meaning we've reached an invalid state
-    if entropy_grid.min() == 0:
-        return False
-
-    # use argmin directly
-    min_idx = np.argmin(entropy_grid)
-    row, col = np.unravel_index(min_idx, entropy_grid.shape)
-
-    original_superposition = cell_space[row, col]
-
-    while cell_space[row, col] > 0:
-        queue = deque()
-        modifications = deque()
-
-        # Collapse the superposition
-        # Gather the probability distribution to sample from
-        c = cell_space[row, col]
-        p = np.zeros_like(weights)
-        for i in range(num_states):
-            p[i] = (1 & c) * weights[i]
-            c = c >> 1
-
-        # Choose a random state index - update board accordingly
-        index = np.random.choice(args, p=p/p.sum())
-        cell_space[row, col] = 2**index
-        state_space[row, col] = index_to_hash[index]
-
-        # Add neighbors to propogation queue
-        for i in range(len(directions)):
-            step = dir_steps[i]
-
-            if row + step[0] < 0 or row + step[0] > space_size-1 or col + step[1] < 0 or col + step[1] > space_size-1:
-                continue
-
-            adj = build_allowed_superposition(cell_space, index_to_hash, rev_adjacencies, 
-                num_states, (row, col), (row + step[0], col + step[1]), directions[i])
-            queue.append((row + step[0], col + step[1], adj))
-
-        # Perform a BFS
-        is_valid = True
-        while len(queue) > 0:
-            qr, qc, adj = queue.popleft()
-
-            if qr < 0 or qr > space_size-1 or qc < 0 or qc > space_size-1:
-                continue  # Skip if out-of-bounds
-            if state_space[qr, qc] != -1:
-                continue  # Skip if state is collapsed
-            
-            # update based on given adjacencies
-            old_cell = cell_space[qr, qc]
-            cell_space[qr,qc] &= adj
-            
-            if old_cell != cell_space[qr, qc]:
-                if cell_space[qr, qc] == 0:
-                    is_valid = False
-                    break
-
-                # Add to backprop queue
-                modifications.append((qr, qc, old_cell))
-
-                # Propagate further 
-                for i in range(len(directions)):
-                    step = dir_steps[i]
-
-                    if qr + step[0] < 0 or qr + step[0] > space_size-1 or qc + step[1] < 0 or qc + step[1] > space_size-1:
-                        continue
-
-                    adj = build_allowed_superposition(cell_space, index_to_hash, 
-                        rev_adjacencies, num_states, (qr, qc), (qr + step[0], qc + step[1]), 
-                        directions[i])
-                    queue.append((qr + step[0], qc + step[1], adj))
-        
-        # If valid, recurse deeper.
-        if is_valid:
-            # Recursive call
-            result = collapse_grid_fully_recursive(cell_space, state_space, args, weights, 
-                index_to_hash, hash_to_index, adjacencies, rev_adjacencies,  num_states, 
-                collapse_count + 1, space_size)
-
-            if result:
-                return True
-            
-        # If invalid, revert changes
-        # If not valid, revert 
-        for r, c, old_superposition in reversed(modifications):
-            cell_space[r, c] = old_superposition
-        cell_space[row, col] &= ~(2**index)
-        state_space[row, col] = -1
-    
-    # There are no possible states that we choose - all end up with an invalid grid
-    # We need to backtrack, so revert this state back to where it was.
-    cell_space[row, col] = original_superposition
-    state_space[row, col] = -1
-
-    return False
-
 
 def hash_pixel_at_position(hash_value, index, numColors):
     return (hash_value // (numColors ** index)) % numColors
@@ -212,9 +29,9 @@ def apply_boundary_constraints(cell_space, index_to_hash, num_states, constraint
     def restrict_cell(r, c, allowed_mask):
         old_mask = cell_space[r, c]
         new_mask = old_mask & allowed_mask
-        if new_mask == 0:
+        if not new_mask.any():  # works with boolean arrays
             return False
-        if new_mask != old_mask:
+        if not np.array_equal(new_mask, old_mask):
             cell_space[r, c] = new_mask
             queue.append((r, c))
         return True
@@ -222,92 +39,123 @@ def apply_boundary_constraints(cell_space, index_to_hash, num_states, constraint
     # Collect all boundary constraints first
     boundary_masks = {}
 
-    # Apply top constraints
+    # Helper to compute allowed states for a given segment
+    def allowed_states_for_segment(segment, positions):
+        allowed = np.zeros(num_states, dtype=bool)
+        for idx in range(num_states):
+            if hash_matches_segment(index_to_hash[idx], segment, numColors, positions):
+                allowed[idx] = True
+        return allowed
+
+    # Top constraints
     if "top" in constraints:
         top = constraints["top"]
         for j in range(space_size):
-            allowed = 0
             segment = top[j:j+tile_size]
-            positions = [x for x in range(tile_size)]
-            for idx in range(num_states):
-                if hash_matches_segment(index_to_hash[idx], segment, numColors, positions):
-                    allowed |= 2**idx
-            boundary_masks[(0, j)] = allowed
+            positions = list(range(tile_size))
+            boundary_masks[(0, j)] = allowed_states_for_segment(segment, positions)
 
-    # Apply left constraints
+    # Left constraints
     if "left" in constraints:
         left = constraints["left"]
         for i in range(space_size):
-            allowed = 0
             segment = left[i:i+tile_size]
             positions = [x * tile_size for x in range(tile_size)]
-            for idx in range(num_states):
-                if hash_matches_segment(index_to_hash[idx], segment, numColors, positions):
-                    allowed |= 2**idx
+            mask = allowed_states_for_segment(segment, positions)
             if (i, 0) in boundary_masks:
-                # Corner cell 
-                boundary_masks[(i, 0)] &= allowed
+                boundary_masks[(i, 0)] &= mask
             else:
-                boundary_masks[(i, 0)] = allowed
+                boundary_masks[(i, 0)] = mask
 
-    # Apply bottom constraints
+    # Bottom constraints
     if "bottom" in constraints:
         bottom = constraints["bottom"]
         row = space_size - 1
         for j in range(space_size):
-            allowed = 0
             segment = bottom[j:j+tile_size]
             positions = [tile_size*(tile_size-1) + x for x in range(tile_size)]
-            for idx in range(num_states):
-                if hash_matches_segment(index_to_hash[idx], segment, numColors, positions):
-                    allowed |= 2**idx
+            mask = allowed_states_for_segment(segment, positions)
             if (row, j) in boundary_masks:
-                # Corner cell 
-                boundary_masks[(row, j)] &= allowed
+                boundary_masks[(row, j)] &= mask
             else:
-                boundary_masks[(row, j)] = allowed
+                boundary_masks[(row, j)] = mask
 
-    # Apply right constraints
+    # Right constraints
     if "right" in constraints:
         right = constraints["right"]
         col = space_size - 1
         for i in range(space_size):
-            allowed = 0
             segment = right[i:i+tile_size]
             positions = [x * tile_size + (tile_size - 1) for x in range(tile_size)]
-            for idx in range(num_states):
-                if hash_matches_segment(index_to_hash[idx], segment, numColors, positions):
-                    allowed |= 2**idx
+            mask = allowed_states_for_segment(segment, positions)
             if (i, col) in boundary_masks:
-                # Corner cell 
-                boundary_masks[(i, col)] &= allowed
+                boundary_masks[(i, col)] &= mask
             else:
-                boundary_masks[(i, col)] = allowed
+                boundary_masks[(i, col)] = mask
 
     # Apply all boundary constraints
     for (r, c), allowed_mask in boundary_masks.items():
         if not restrict_cell(r, c, allowed_mask):
             return False
 
-    # Propagate constraint effects through the grid.
+    # Propagate constraints through the grid
     while queue:
         qr, qc = queue.popleft()
-        for i in range(len(directions)):
-            step = dir_steps[i]
-            nr = qr + step[0]
-            nc = qc + step[1]
+        for i, step in enumerate([(-1,0),(0,1),(1,0),(0,-1)]):
+            nr, nc = qr + step[0], qc + step[1]
             if nr < 0 or nr >= space_size or nc < 0 or nc >= space_size:
                 continue
+            # Allowed states based on adjacency
+            adj = np.zeros(num_states, dtype=bool)
+            for src_state in range(num_states):
+                if not cell_space[qr, qc, src_state]:
+                    continue
+                adj |= rev_adjacencies[['t','r','b','l'][i]][src_state]
+            adj &= cell_space[nr, nc]
 
-            adj = build_allowed_superposition(cell_space, index_to_hash, rev_adjacencies,
-                num_states, (qr, qc), (nr, nc), directions[i])
             if not restrict_cell(nr, nc, adj):
                 return False
 
     return True
 
+def gen_entropy_grid(cell_space, state_space, num_states):
+    entropy_grid = np.zeros_like(state_space)
+    entropy_grid[state_space != -1] = 100000
+
+    entropy_grid += cell_space.sum(-1)
+
+    return entropy_grid
+
+
+def build_allowed_superposition(cell_space, index_to_hash, rev_adjacencies, num_states, source_pos, sink_pos, direction):
+    c_ar = cell_space[source_pos] # This is a binary array
+
+    # Index the adjacency matrix to find allowed states
+    allowed_states = rev_adjacencies[direction][c_ar].any(axis=0) 
+    
+    return allowed_states & cell_space[sink_pos]
+
+def build_grid_from_cell_space(state_space, gen_size, space_size, tile_size, numColors, stride):
+    grid = np.zeros((gen_size,gen_size), dtype=np.int64)
+
+    # space_size = gen_size - tile_size + 1
+    # for i, j in np.ndindex((space_size, space_size)):
+    #     grid[i:i+tile_size, j:j+tile_size] = reverse_hash(state_space[i,j], numColors, tile_size)
+
+    for i in range(0, space_size):
+        for j in range(0, space_size):
+            r = i*stride
+            c = j*stride
+            grid[r:r+tile_size, c:c+tile_size] = reverse_hash(state_space[i,j], numColors, tile_size)
+
+    return grid
+
+
+# Fully recursive method has unlimited backtracking but greatly extends runtime
 # Should guarantee a valid answer
-def generate_fully_recursive_chunk(tilemap, gen_size, tile_size=2,PNG=False, hash_to_num={},num_to_hash={},tile_set={},numColors=4,constraints={}):
+def generate_fully_recursive(tilemap, gen_size, tile_size=2,stride=1,PNG=False, hash_to_num={},num_to_hash={},tile_set={},numColors=4, constraints={}):
+    assert (gen_size - tile_size) % stride == 0, "Incompatible Tile/Stride/Grid_Size Combination"
+    
     if(not PNG):
         map_size = len(tilemap)
 
@@ -317,14 +165,16 @@ def generate_fully_recursive_chunk(tilemap, gen_size, tile_size=2,PNG=False, has
     
     num_states = len(tile_set.keys())
 
-    adjacencies = collect_adjacencies_bitwise(hash_to_num, tile_set, numColors)
-    rev_adjacencies = collect_reverse_adjacencies(hash_to_num, tile_set, numColors)
+    rev_adjacencies = collect_reverse_adjacencies(hash_to_num, tile_set, numColors, num_states, tile_size=tile_size, stride=stride)
+    
+    # Stuff for sampling from superpositions
     weights = np.array(list(tile_set.values()))
     args = np.arange(num_states)
 
-    space_size = gen_size - tile_size + 1
+    # space_size = gen_size - tile_size + 1
+    space_size = (gen_size - tile_size)//stride + 1
 
-    cell_space = np.ones((space_size, space_size), dtype=np.int64) * (2**num_states-1)
+    cell_space = np.ones((space_size, space_size, num_states), dtype=bool)
     state_space = np.ones((space_size, space_size), dtype=np.int64) * -1
 
     if constraints:
@@ -333,18 +183,19 @@ def generate_fully_recursive_chunk(tilemap, gen_size, tile_size=2,PNG=False, has
         if not valid:
             return None, False
     
-    res = collapse_grid_fully_recursive_chunk(cell_space, state_space, args, weights, num_to_hash, 
-        hash_to_num, adjacencies, rev_adjacencies, num_states, 0, space_size)
-    
-    # Return the grid and whether or not the generation was successful (certain tilemaps may have no valid solution)
-    return build_grid_from_cell_space(state_space, gen_size, tile_size, numColors), res
+    res = collapse_grid_fully_recursive(cell_space, state_space, args, weights, num_to_hash, 
+        hash_to_num, rev_adjacencies, num_states, 0, space_size)
 
-def collapse_grid_fully_recursive_chunk(cell_space, state_space, args, weights, index_to_hash, hash_to_index, adjacencies, rev_adjacencies, num_states, collapse_count, space_size):
+    # Return the grid and whether or not the generation was successful (certain tilemaps may have no valid solution)
+    return build_grid_from_cell_space(state_space, gen_size, space_size, tile_size, numColors, stride), res
+
+def collapse_grid_fully_recursive(cell_space, state_space, args, weights, index_to_hash, hash_to_index, rev_adjacencies, num_states, collapse_count, space_size, entropy_grid = None):
     if collapse_count == space_size*space_size:
         return True # We were successful!
     
     # Find the next available cell via lowest entropy
-    entropy_grid = gen_entropy_grid(cell_space, state_space, num_states)
+    if entropy_grid is None:
+        entropy_grid = gen_entropy_grid(cell_space, state_space, num_states)
 
     # If there is a state with zero entropy, it has no options, meaning we've reached an invalid state
     if entropy_grid.min() == 0:
@@ -354,24 +205,26 @@ def collapse_grid_fully_recursive_chunk(cell_space, state_space, args, weights, 
     min_idx = np.argmin(entropy_grid)
     row, col = np.unravel_index(min_idx, entropy_grid.shape)
 
-    original_superposition = cell_space[row, col]
+    original_superposition = cell_space[row, col].copy()
+    current_superposition = cell_space[row, col]
 
-    while cell_space[row, col] > 0:
+    while cell_space[row, col].any() > 0:
         queue = deque()
         modifications = deque()
 
         # Collapse the superposition
         # Gather the probability distribution to sample from
         c = cell_space[row, col]
-        p = np.zeros_like(weights)
-        for i in range(num_states):
-            p[i] = (1 & c) * weights[i]
-            c = c >> 1
+        p = weights.copy()
+        
+        p[c == False] = 0 # Zero out invalid weights
 
         # Choose a random state index - update board accordingly
         index = np.random.choice(args, p=p/p.sum())
-        cell_space[row, col] = 2**index
+        cell_space[row, col] = np.zeros(num_states, dtype=bool)
+        cell_space[row, col, index] = True
         state_space[row, col] = index_to_hash[index]
+        entropy_grid[row, col] = 1 + 100000
 
         # Add neighbors to propogation queue
         for i in range(len(directions)):
@@ -395,16 +248,23 @@ def collapse_grid_fully_recursive_chunk(cell_space, state_space, args, weights, 
                 continue  # Skip if state is collapsed
             
             # update based on given adjacencies
-            old_cell = cell_space[qr, qc]
+            old_cell = cell_space[qr, qc].copy()
             cell_space[qr,qc] &= adj
-            
-            if old_cell != cell_space[qr, qc]:
-                if cell_space[qr, qc] == 0:
+
+            # Check if the old state is different than the new state
+            if (old_cell ^ cell_space[qr, qc]).any() > 0:
+                if cell_space[qr, qc].sum() == 0:
                     is_valid = False
                     break
 
+                # Update entropy grid
+                old_entropy = entropy_grid[qr, qc]
+                entropy_grid[qr, qc] = cell_space[qr, qc].sum()
+                if state_space[qr, qc] != -1:
+                    entropy_grid[qr, qc] += 100000
+
                 # Add to backprop queue
-                modifications.append((qr, qc, old_cell))
+                modifications.append((qr, qc, old_cell, old_entropy))
 
                 # Propagate further 
                 for i in range(len(directions)):
@@ -417,34 +277,41 @@ def collapse_grid_fully_recursive_chunk(cell_space, state_space, args, weights, 
                         rev_adjacencies, num_states, (qr, qc), (qr + step[0], qc + step[1]), 
                         directions[i])
                     queue.append((qr + step[0], qc + step[1], adj))
-        
+
         # If valid, recurse deeper.
         if is_valid:
             # Recursive call
-            result = collapse_grid_fully_recursive_chunk(cell_space, state_space, args, weights, 
-                index_to_hash, hash_to_index, adjacencies, rev_adjacencies,  num_states, 
-                collapse_count + 1, space_size)
+            result = collapse_grid_fully_recursive(cell_space, state_space, args, weights, 
+                index_to_hash, hash_to_index, rev_adjacencies,  num_states, 
+                collapse_count + 1, space_size, entropy_grid=entropy_grid)
 
             if result:
                 return True
             
         # If invalid, revert changes
         # If not valid, revert 
-        for r, c, old_superposition in reversed(modifications):
+        for r, c, old_superposition, old_entropy in reversed(modifications):
             cell_space[r, c] = old_superposition
-        cell_space[row, col] &= ~(2**index)
+            entropy_grid[r, c] = old_entropy
+
+        mask = np.ones_like(current_superposition)
+        mask[index] = 0
+        cell_space[row, col] = current_superposition & mask
+        current_superposition = cell_space[row, col]
         state_space[row, col] = -1
     
     # There are no possible states that we choose - all end up with an invalid grid
     # We need to backtrack, so revert this state back to where it was.
     cell_space[row, col] = original_superposition
     state_space[row, col] = -1
+    entropy_grid[row, col] = original_superposition.sum()
 
     return False
 
 
 
 if __name__ == '__main__':
+
     tilemap = np.ones((11,10))
 
     tilemap[0:2, :] = 3
@@ -461,14 +328,8 @@ if __name__ == '__main__':
     tilemap[7, 4:8] = 0
     tilemap[8:10, 5:8] = 0
 
-    # tilemap = np.ones((5,5)) * 3
-
-    # tilemap[2:5, 2:5] = 2
-    # tilemap[1, 2] = 2
-    # tilemap[2, 1] = 2
-
     # grid, result = generate_fully_recursive(tilemap, 4, 2)
-    grid = generate_fully_recursive(tilemap, 30, 2)
+    grid, result = generate_fully_recursive(tilemap, 32, 2)
     show_im(grid, get_colors())
-    # print(result)
+    print(result)
     plt.show()
