@@ -8,43 +8,35 @@ Dylan Dudley - 03/27/2026
 
 ----------------------------------------------------------------"""
 
+import sys
+import os
+
+# Add parent directory to Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from ursina import *
-from ImagePNG import imageLoad 
-from SampleDisplay import sampleTiles
-from WaveFunc import WaveFunc 
-from ChunkBasedMap import chunkBasedMap
+from PNGConvert.ImagePNG import imageLoad 
+from PNGConvert.SampleDisplay import sampleTiles
+from PNGConvert.WaveFunc import WaveFunc 
+from PNGConvert.ChunkBasedMap import chunkBasedMap
 
 import numpy as np
 
-# ------------------------------------------------------------------------
-#
-# This is the main handler
-# imageLoad - modify the /XXXX.png for given sample image
-#           - This is for when you want to rotate True for rotate
-#
-# SampleTiles - displays the sample dataset
-#
-# grid_size - adjust to grid_size 30 x 30
-# WaveFunc - takes in the tiles and weight list as well as grid_size
-#
-# The rest is setting up our ursina enviornment
-#
-# ------------------------------------------------------------------------
 
 # Create test
 tile_size = 2 # For sample tiles
 rotation = True # If we want rotations allowed
-grid_size = 10 # output grid size
-png_name = "4Color" # Name of the PNG file in the images folder
-chunks = 15 # number of chunks to split the map into for better performance
+grid_size = 15 # output grid size
+png_name = "RedDot" # Name of the PNG file in the images folder
 
-tiles, weights = imageLoad(f"PNGConvert/images/{png_name}.png",rotation, tile_size)
+D3D_tiles = []
 
-# Single grid generation
-#WaveFunc(tiles, weights, grid_size, tile_size)
+for i in range(4):
+    png_name = f"png_name{i}"
+    tiles, weights = imageLoad(f"PNGConvert/images/{png_name}.png",rotation, tile_size)
+    D3D_tiles.append(tiles)
 
-# Chunk based grid generation, can create large maps, but can fail with more restrictive tile sets
-chunkBasedMap(tiles, weights, grid_size, tile_size,chunks) # Works well with versitile sample tiles, but can fail with more restrictive ones
+print(D3D_tiles)
 
 app = Ursina()
 

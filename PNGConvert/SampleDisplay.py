@@ -10,9 +10,9 @@ Dylan Dudley - 03/27/2026
 ----------------------------------------------------------------"""
 
 from ursina import *
-from ImagePNG import *
-from Blocks import create_block
-from MeshGrid import startMesh
+from PNGConvert.ImagePNG import *
+from PNGConvert.Blocks import create_block
+from PNGConvert.MeshGrid import startMesh
 import numpy as np
 
 # ------------------------------------------------------------------------

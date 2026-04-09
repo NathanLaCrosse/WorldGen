@@ -2,9 +2,9 @@ import sys
 import os
 
 # Add parent directory to Python path
-from MeshGrid import startMesh
+from PNGConvert.MeshGrid import startMesh
 from PNGConvert.SampleDisplay import sample_mesh
-from WaveFunc import tileToColor
+from PNGConvert.WaveFunc import tileToColor
 from WFC import generate_fully_recursive_chunk
 import numpy as np
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
