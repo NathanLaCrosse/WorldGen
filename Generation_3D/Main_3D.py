@@ -23,20 +23,18 @@ from Generation_3D.Sample_3D import create_voxel_mesh
 
 import numpy as np
 
-def ThreeD_Main():
-    png_folder = "grass" # Name of the PNG file in the images folder
-    tile_size = 5 # For sample tiles
-    rotation = False # If we want rotations allowed
+def ThreeD_Main(tile_size = 5, rotation = False,png_folder="building",png_names="building"):
+    png_folder = png_folder # Name of the PNG file in the images folder
+    tile_size = tile_size # For sample tiles
+    rotation = rotation # If we want rotations allowed
     three_dimensional = []
     three_dimensional_weights = []
 
     for i in range(5):
-        png_name = f"grass{i}"
+        png_name = f"{png_names}{i}"
         tiles, weights = imageLoad(f"Generation_3D/images_3D/{png_folder}/{png_name}.png",rotation, tile_size)
         three_dimensional.append((tiles))
         three_dimensional_weights.append(weights)
-    print(three_dimensional[0][0][0],"\n\n")
-    print(three_dimensional[0][0],"\n\n")
     
     create_voxel_mesh(three_dimensional)
     # SampleTiles - displays the sample dataset
