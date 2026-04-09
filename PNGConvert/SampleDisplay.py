@@ -12,11 +12,13 @@ Dylan Dudley - 03/27/2026
 from ursina import *
 from PNGConvert.ImagePNG import *
 from PNGConvert.Blocks import create_block
+from PNGConvert.MeshGrid import startMesh
 import numpy as np
 
 # ------------------------------------------------------------------------
 #
 # This displays our sample tile set
+# Replaced by mesh. Keeping for reference if needed
 #
 # ------------------------------------------------------------------------
 def sampleTiles(tiles, tile_size=2):
@@ -48,22 +50,31 @@ def sampleTiles(tiles, tile_size=2):
             x_offset = x
             y -= tile_size + 2
 
-# Replaced by mesh. Keeping for reference if needed
-def sample_mesh(tiles, color_to_index, tile_size=2):
-    tile_length = len(tiles)
-    sample_grid = np.full((grid_size, grid_size), -1)
+# Creates a mesh for the sample tiles, this is for better performance when we have a large number of tiles
+def sample_mesh(tiles, color_to_index, index_to_color, tile_size=2, tiles_per_row=8):
+    num_tiles = len(tiles)
+    rows = (num_tiles + tiles_per_row - 1) // tiles_per_row
 
-    current_x = 0
-    for tile in tiles:
-        # tile is tile_size x tile_size
+    grid_height = rows * (tile_size + 1)
+    grid_width = tiles_per_row * (tile_size + 1)
+
+    sample_grid = np.full((grid_height, grid_width), -1)
+
+    for idx, tile in enumerate(tiles):
+        tile_row = idx // tiles_per_row
+        tile_col = idx % tiles_per_row
+
+        # Add spacing of 1 between tiles
+        y_offset = tile_row * (tile_size + 1)
+        x_offset = tile_col * (tile_size + 1)
+
         for dy in range(tile_size):
             for dx in range(tile_size):
-                # make sure we don't go out of bounds
-                if dy < grid_size and current_x + dx < grid_size:
-                    sample_grid[dy][current_x + dx] = color_to_index[tile[dy][dx]]
-        # move to next tile horizontally
-        current_x += tile_size
+                y = y_offset + dy
+                x = x_offset + dx
 
-    print(sample_grid)
+                sample_grid[y, x] = color_to_index[tile[dy][dx]]
+
+    startMesh(sample_grid, index_to_color, x_offset=0, y_offset=-grid_height-5)
     return sample_grid
             
