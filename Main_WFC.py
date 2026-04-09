@@ -5,15 +5,16 @@ import numpy as np
 
 grid_size = 50 # output grid size
 chunks = 1 # number of chunks to split the map into for better performance
-tile_size = 5 # For sample tiles
+tile_size = 2 # For sample tiles
 rotation = False # If we want rotations allowed
-png_name = "grass" # Name of the PNG file in the images folder
-wave = False # If true, uses the single grid generation, if false uses the chunk based generation
-stride = 1 # stride for chunk generation, higher stride means faster generation but more likely to fail with restrictive tile sets
+png_name = "island" # Name of the PNG file in the images folder
+wave = True # If true, uses the single grid generation, if false uses the chunk based generation
+stride = 1 
 
-#RunPNG(tile_size = tile_size, rotation = rotation, grid_size = grid_size, png_name = png_name, chunks = chunks, wave = wave, stride = stride)
+RunPNG(tile_size = tile_size, rotation = rotation, grid_size = grid_size, png_name = png_name, chunks = chunks, wave = wave, stride = stride)
 
-ThreeD_Main(tile_size = tile_size, rotation = rotation, png_folder=png_name,png_names=png_name)
+# Currently works with 5x5 tile size, and either grass or building for png_name
+#ThreeD_Main(tile_size = tile_size, rotation = rotation, png_folder=png_name,png_names=png_name)
 
 app = Ursina()
 

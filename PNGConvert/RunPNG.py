@@ -43,7 +43,7 @@ def RunPNG(tile_size = 2, rotation = True, grid_size = 15, png_name = "RedDot", 
 
     # Single grid generation
     if (wave):
-        WaveFunc(tiles, weights, grid_size, tile_size)
+        WaveFunc(tiles, weights, grid_size, tile_size, stride)
     else:
         # Chunk based grid generation, can create large maps, but can fail with more restrictive tile sets
         chunkBasedMap(tiles, weights, grid_size, tile_size,chunks, stride) # Works well with versitile sample tiles, but can fail with more restrictive ones
