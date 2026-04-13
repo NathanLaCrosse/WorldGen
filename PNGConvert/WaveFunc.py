@@ -24,21 +24,31 @@ from TileCollection import hash_tile, build_tile_lookup
 # main handler
 #
 # ------------------------------------------------------------------------
-def WaveFunc(tiles, weights, grid_size, tile_size):
+def WaveFunc(tiles, weights, grid_size, tile_size, stride):
 
     hash_to_num, num_to_hash, tile_set, index_to_color, color_to_index, numColors = tileToColor(tiles, weights)
 
     PNG=True
     
-    grid = generate_fully_recursive(None, grid_size, tile_size, PNG, hash_to_num, num_to_hash, tile_set, numColors)
+    grid = generate_fully_recursive(None, grid_size, tile_size,stride,  PNG, hash_to_num, num_to_hash, tile_set, numColors)
 
     startMesh(grid[0], index_to_color)
 
     # TODO: Fix this
-    #sample_mesh(tiles, color_to_index)
+    sample_mesh(tiles, color_to_index, index_to_color, tile_size)
     
 
     return 
+
+def WaveFunc3D(tiles, weights, grid_size, tile_size, stride):
+
+    hash_to_num, num_to_hash, tile_set, index_to_color, color_to_index, numColors = tileToColor(tiles, weights)
+
+    PNG=True
+    
+    grid, res = generate_fully_recursive(None, grid_size, tile_size,stride,  PNG, hash_to_num, num_to_hash, tile_set, numColors)
+
+    return grid, index_to_color
 
 # ------------------------------------------------------------------------
 #

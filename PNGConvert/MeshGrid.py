@@ -13,8 +13,8 @@ from ursina import *
 #
 # ------------------------------------------------------------------------
 
-def startMesh(world_grid, index_to_color):
-    create_mesh(world_grid,index_to_color)
+def startMesh(world_grid, index_to_color, x_offset=0, y_offset=0):
+    create_mesh(world_grid, index_to_color, x_offset, y_offset)
     return
 
 # ------------------------------------------------------------------------
@@ -25,11 +25,11 @@ def startMesh(world_grid, index_to_color):
 #
 # ------------------------------------------------------------------------
 
-def create_mesh(world_grid, index_to_color, tile_size=1):
+def create_mesh(world_grid, index_to_color, x_offset=0, y_offset=0, tile_size=1):
     tiles_holder = []
     triangles = []
     colors = []
-
+    z = None
     # Use actual world_grid size (overlapping)
     rows, cols = world_grid.shape  
 
@@ -51,13 +51,12 @@ def create_mesh(world_grid, index_to_color, tile_size=1):
             triangles.extend([idx, idx+1, idx+2, idx, idx+2, idx+3])
 
             # This handler will take in the given location, and return the color from our color index
-            colors.extend([get_color(world_grid,x,y,index_to_color)]*4)
+            colors.extend([get_color(world_grid,x,y,z,index_to_color)]*4)
     
 
     # Creates the mesh, then forms as an entity
     mesh = Mesh(vertices=tiles_holder, triangles=triangles, colors=colors, mode='triangle')
-    entity = Entity(model=mesh, position=(rows, cols, 0))
-    entity.rotation_z = 180
+    entity = Entity(model=mesh, position=(x_offset, y_offset, 0))
     return
 
 
@@ -66,10 +65,26 @@ def create_mesh(world_grid, index_to_color, tile_size=1):
 # This gets the color from our index_to_color
 #
 # ------------------------------------------------------------------------
-def get_color(world_grid, x, y, index_to_color):
-    # Get color from your index-to-color mapping
-    colors = index_to_color[world_grid[y][x]]
+def get_color(world_grid, x, y, z, index_to_color):
+    # Get value from world_grid at (x, y)
+    if z is not None:
+        val = world_grid[z][y][x]
+    else:
+        val = world_grid[y][x]  
 
+    # Handle empty space
+    if val == -1:
+        return color.rgba(0, 0, 0, 0)  # fully transparent
+
+    # Get color from your index-to-color mapping
+    if z is not None:
+        colors = index_to_color[z][val]
+    else:
+        colors = index_to_color[val]
+
+    if colors[0] == 0 and colors[1] == 0 and colors[2] == 0:
+        return color.rgba(0, 0, 0, 0)  # fully transparent
+    
     # Converts from RGB format to normalized
     r_norm = colors[0] / 255
     g_norm = colors[1] / 255
