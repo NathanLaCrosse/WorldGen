@@ -6,15 +6,16 @@ def create_voxel_mesh(world_3d, index_to_color_3d):
     triangles = []
     colors = []
     index_offset = 0
-
     depth = len(world_3d)
 
     for z in range(depth):
         layer = world_3d[z]
         rows = len(layer)
-        # we need one extra row to print samples
+
+        # Since when we input sample data we have a X by X image
         if index_to_color_3d is None:
-            rows += 1
+             rows = len(layer[0])
+
         cols = len(layer[0])
 
         for y in range(rows):
