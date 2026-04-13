@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 sys.setrecursionlimit(10**6)
 
 if __name__ == '__main__':
-    gen_size = 17
+    gen_size = 65
     tile_size = 3
     stride = 2
 
