@@ -40,6 +40,16 @@ def WaveFunc(tiles, weights, grid_size, tile_size, stride):
 
     return 
 
+def WaveFunc3D(tiles, weights, grid_size, tile_size, stride):
+
+    hash_to_num, num_to_hash, tile_set, index_to_color, color_to_index, numColors = tileToColor(tiles, weights)
+
+    PNG=True
+    
+    grid, res = generate_fully_recursive(None, grid_size, tile_size,stride,  PNG, hash_to_num, num_to_hash, tile_set, numColors)
+
+    return grid, index_to_color
+
 # ------------------------------------------------------------------------
 #
 # This will convert the tiles list into color indexes
