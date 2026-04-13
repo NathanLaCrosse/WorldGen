@@ -11,6 +11,112 @@ op_directions = ['b', 'l', 't', 'r']
 t1_comparisons = [[0,1], [1,3], [0,2], [2,3]]
 t2_comparisons = [[2,3], [0,2], [1,3], [0,1]]
 
+def hash_pixel_at_position(hash_value, index, numColors):
+    return (hash_value // (numColors ** index)) % numColors
+
+
+def hash_matches_segment(hash_value, segment, numColors, positions):
+    for pos, expected in zip(positions, segment):
+        if hash_pixel_at_position(hash_value, pos, numColors) != expected:
+            return False
+    return True
+
+
+def apply_boundary_constraints(cell_space, index_to_hash, num_states, constraints, tile_size, numColors, rev_adjacencies):
+    space_size = cell_space.shape[0]
+    queue = deque()
+
+    def restrict_cell(r, c, allowed_mask):
+        old_mask = cell_space[r, c]
+        new_mask = old_mask & allowed_mask
+        if not new_mask.any():  # works with boolean arrays
+            return False
+        if not np.array_equal(new_mask, old_mask):
+            cell_space[r, c] = new_mask
+            queue.append((r, c))
+        return True
+
+    # Collect all boundary constraints first
+    boundary_masks = {}
+
+    # Helper to compute allowed states for a given segment
+    def allowed_states_for_segment(segment, positions):
+        allowed = np.zeros(num_states, dtype=bool)
+        for idx in range(num_states):
+            if hash_matches_segment(index_to_hash[idx], segment, numColors, positions):
+                allowed[idx] = True
+        return allowed
+
+    # Top constraints
+    if "top" in constraints:
+        top = constraints["top"]
+        for j in range(space_size):
+            segment = top[j:j+tile_size]
+            positions = list(range(tile_size))
+            boundary_masks[(0, j)] = allowed_states_for_segment(segment, positions)
+
+    # Left constraints
+    if "left" in constraints:
+        left = constraints["left"]
+        for i in range(space_size):
+            segment = left[i:i+tile_size]
+            positions = [x * tile_size for x in range(tile_size)]
+            mask = allowed_states_for_segment(segment, positions)
+            if (i, 0) in boundary_masks:
+                boundary_masks[(i, 0)] &= mask
+            else:
+                boundary_masks[(i, 0)] = mask
+
+    # Bottom constraints
+    if "bottom" in constraints:
+        bottom = constraints["bottom"]
+        row = space_size - 1
+        for j in range(space_size):
+            segment = bottom[j:j+tile_size]
+            positions = [tile_size*(tile_size-1) + x for x in range(tile_size)]
+            mask = allowed_states_for_segment(segment, positions)
+            if (row, j) in boundary_masks:
+                boundary_masks[(row, j)] &= mask
+            else:
+                boundary_masks[(row, j)] = mask
+
+    # Right constraints
+    if "right" in constraints:
+        right = constraints["right"]
+        col = space_size - 1
+        for i in range(space_size):
+            segment = right[i:i+tile_size]
+            positions = [x * tile_size + (tile_size - 1) for x in range(tile_size)]
+            mask = allowed_states_for_segment(segment, positions)
+            if (i, col) in boundary_masks:
+                boundary_masks[(i, col)] &= mask
+            else:
+                boundary_masks[(i, col)] = mask
+
+    # Apply all boundary constraints
+    for (r, c), allowed_mask in boundary_masks.items():
+        if not restrict_cell(r, c, allowed_mask):
+            return False
+
+    # Propagate constraints through the grid
+    while queue:
+        qr, qc = queue.popleft()
+        for i, step in enumerate([(-1,0),(0,1),(1,0),(0,-1)]):
+            nr, nc = qr + step[0], qc + step[1]
+            if nr < 0 or nr >= space_size or nc < 0 or nc >= space_size:
+                continue
+            # Allowed states based on adjacency
+            adj = np.zeros(num_states, dtype=bool)
+            for src_state in range(num_states):
+                if not cell_space[qr, qc, src_state]:
+                    continue
+                adj |= rev_adjacencies[['t','r','b','l'][i]][src_state]
+            adj &= cell_space[nr, nc]
+
+            if not restrict_cell(nr, nc, adj):
+                return False
+
+    return True
 
 def gen_entropy_grid(cell_space, state_space, num_states):
     entropy_grid = np.zeros_like(state_space)
@@ -44,9 +150,10 @@ def build_grid_from_cell_space(state_space, gen_size, space_size, tile_size, num
 
     return grid
 
+
 # Fully recursive method has unlimited backtracking but greatly extends runtime
 # Should guarantee a valid answer
-def generate_fully_recursive(tilemap, gen_size, tile_size=2,stride=1,PNG=False, hash_to_num={},num_to_hash={},tile_set={},numColors=4):
+def generate_fully_recursive(tilemap, gen_size, tile_size=2,stride=1,PNG=False, hash_to_num={},num_to_hash={},tile_set={},numColors=4, constraints={}):
     assert (gen_size - tile_size) % stride == 0, "Incompatible Tile/Stride/Grid_Size Combination"
     
     if(not PNG):
@@ -70,6 +177,12 @@ def generate_fully_recursive(tilemap, gen_size, tile_size=2,stride=1,PNG=False, 
     cell_space = np.ones((space_size, space_size, num_states), dtype=bool)
     state_space = np.ones((space_size, space_size), dtype=np.int64) * -1
 
+    if constraints:
+        valid = apply_boundary_constraints(cell_space, num_to_hash, num_states, constraints,
+            tile_size, numColors, rev_adjacencies)
+        if not valid:
+            return None, False
+    
     res = collapse_grid_fully_recursive(cell_space, state_space, args, weights, num_to_hash, 
         hash_to_num, rev_adjacencies, num_states, 0, space_size)
 
@@ -88,8 +201,9 @@ def collapse_grid_fully_recursive(cell_space, state_space, args, weights, index_
     if entropy_grid.min() == 0:
         return False
 
-    w = np.argwhere(entropy_grid == entropy_grid.min())
-    row, col = w[np.random.choice(np.arange(w.shape[0]))]
+    # use argmin directly
+    min_idx = np.argmin(entropy_grid)
+    row, col = np.unravel_index(min_idx, entropy_grid.shape)
 
     original_superposition = cell_space[row, col].copy()
     current_superposition = cell_space[row, col]
