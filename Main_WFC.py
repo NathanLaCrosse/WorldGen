@@ -6,7 +6,7 @@ import numpy as np
 # General parms
 grid_size = 25 # output grid size
 tile_size = 2 # For sample tiles
-rotation = True # If we want rotations allowed
+rotation = False # If we want rotations allowed
 png_name = "grass" # Name of the PNG file in the images folder
 
 # 2-D only Parms
@@ -17,7 +17,7 @@ chunks = 1 # number of chunks to split the map into for better performance
 # Make sure that tile_size = num_images when doing sample only and rotation = false
 # 3-D only parms 
 num_images = 5 # Number of images to use for the WFC, should be between 1 and 7
-sample_only = False # If true, only creates the sample image, if false creates the WFC output (note: if true, it will not create the WFC output, even if wave is true, since it needs the WFC output to create the sample image)
+sample_only = True # If true, only creates the sample image, if false creates the WFC output (note: if true, it will not create the WFC output, even if wave is true, since it needs the WFC output to create the sample image)
 
 
 # 2-D WFC
