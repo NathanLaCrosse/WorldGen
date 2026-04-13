@@ -8,11 +8,12 @@ def create_voxel_mesh(world_3d, index_to_color_3d):
     index_offset = 0
     depth = len(world_3d)
 
+    # For how many layers we have in our 3D world
     for z in range(depth):
         layer = world_3d[z]
         rows = len(layer)
 
-        # Since when we input sample data we have a X by X image
+        # Since when we input sample data we have a X by X image, must make sure it is the same
         if index_to_color_3d is None:
              rows = len(layer[0])
 
@@ -25,6 +26,7 @@ def create_voxel_mesh(world_3d, index_to_color_3d):
                 gy = z
                 gz = y
 
+                # Sets up the cubes
                 cube_verts = [
                     Vec3(gx, gy, gz),
                     Vec3(gx+1, gy, gz),
