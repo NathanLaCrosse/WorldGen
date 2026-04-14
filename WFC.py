@@ -151,7 +151,7 @@ def build_grid_from_cell_space(state_space, gen_size, space_size, tile_size, num
     return grid
 
 
-# Fully recursive method has unlimited backtracking but greatly extends runtime
+# Fully recursive method has unlimited backtracking
 # Should guarantee a valid answer
 def generate_fully_recursive(tilemap, gen_size, tile_size=2,stride=1,PNG=False, hash_to_num={},num_to_hash={},tile_set={},numColors=4, constraints={}):
     assert (gen_size - tile_size) % stride == 0, "Incompatible Tile/Stride/Grid_Size Combination"

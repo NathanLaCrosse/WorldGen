@@ -147,7 +147,7 @@ def collect_reverse_adjacencies(hash_to_num, tile_set, numColors, num_states,
     for d in directions:
         rev_adjacencies[d] = np.zeros((num_states, num_states), dtype=bool)
 
-    # # Detect adjacencies
+    # Detect adjacencies
     for source in tile_set.keys():
         for sink in tile_set.keys():
 
@@ -157,12 +157,5 @@ def collect_reverse_adjacencies(hash_to_num, tile_set, numColors, num_states,
                     i = hash_to_num[source]
                     j = hash_to_num[sink]
                     rev_adjacencies[directions[d]][i, j] = 1
-
-    # key_list = list(tile_set.keys())
-    # for i in range(len(key_list)):
-    #     for j in range(len(key_list)):
-    #         for d in range(len(directions)):
-    #             if compare_hashes(key_list[i], key_list[j], t1_comparisons[d], t2_comparisons[d], numColors):
-    #                 rev_adjacencies[directions[d]][i, j] = 1
 
     return rev_adjacencies
