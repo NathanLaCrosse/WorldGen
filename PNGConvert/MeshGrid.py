@@ -78,10 +78,10 @@ def get_color(world_grid, x, y, z, index_to_color):
 
     # Get color from your index-to-color mapping
     if z is not None:
-        try:
-            colors = index_to_color[z][val]
-        except:
-            colors = index_to_color[val]
+        # try:
+        #     colors = index_to_color[z][val]
+        # except:
+        colors = index_to_color[val]
     else:
         colors = index_to_color[val]
 

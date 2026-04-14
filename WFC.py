@@ -8,8 +8,8 @@ directions = ['t', 'r', 'b', 'l']
 dir_steps = [(-1,0), (0,1), (1,0), (0,-1)]
 op_directions = ['b', 'l', 't', 'r']
 
-t1_comparisons = [[0,1], [1,3], [0,2], [2,3]]
-t2_comparisons = [[2,3], [0,2], [1,3], [0,1]]
+# t1_comparisons = [[0,1], [1,3], [0,2], [2,3]]
+# t2_comparisons = [[2,3], [0,2], [1,3], [0,1]]
 
 def hash_pixel_at_position(hash_value, index, numColors):
     return (hash_value // (numColors ** index)) % numColors

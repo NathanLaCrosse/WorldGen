@@ -52,8 +52,8 @@ def collect_3D_tiles(tilemap, tile_size, rotation=False):
 
     # Traverse through the tilemap (based on tile_size) & collect tiles
     for i in range(depth - tile_size + 1):
-        for j in range(depth - tile_size + 1):
-            for k in range(depth - tile_size + 1):
+        for j in range(height - tile_size + 1):
+            for k in range(width - tile_size + 1):
                 tile = tilemap[i:i+tile_size, j:j+tile_size, k:k+tile_size]
 
                 tile_tuple = tuple(tile.flatten().tolist()) # For comparisons - collapse to tuple
@@ -92,7 +92,7 @@ def reverse_3D_hash(num, num_colors, tile_size):
     return tile.reshape((tile_size, tile_size, tile_size))
 
 
-def build_3D_tilemap_hashes(tiles, num_colors):
+def build_3D_tilemap_hashes(tiles, weights, num_colors):
     tile_set = {}
     hash_to_num = {}
     num_to_hash = {}
@@ -128,8 +128,8 @@ def collect_reverse_adjacencies(hash_to_num, tile_set, num_colors, num_states,
     north = args[:,:-stride].flatten()
     south = args[:,stride:].flatten()
 
-    east = args[:,:,:-stride].flatten()
-    west = args[:,:,stride:].flatten()
+    east = args[:,:,stride:].flatten()
+    west = args[:,:,:-stride].flatten()
 
     t1_comparisons = [top, bottom, north, south, east, west]
     t2_comparisons = [bottom, top, south, north, west, east]
@@ -154,77 +154,77 @@ def collect_reverse_adjacencies(hash_to_num, tile_set, num_colors, num_states,
 
     return rev_adjacencies
 
-# if __name__ == "__main__":
-tilemap, idx_to_color, color_to_idx = construct_3D_tilemap()
+if __name__ == "__main__":
+    tilemap, idx_to_color, color_to_idx = construct_3D_tilemap(5,8,8,png_folder="Generation_3D/images_3D/gimmickgrass", png_names="richgrass")
 
-tiles, weights = collect_3D_tiles(tilemap, 2)
+    tiles, weights = collect_3D_tiles(tilemap, 2)
 
-num_colors = len(idx_to_color.keys())
-num_states = len(tiles)
+    # num_colors = len(idx_to_color.keys())
+    # num_states = len(tiles)
 
-hash_to_num, num_to_hash, tile_set = build_3D_tilemap_hashes(tiles, num_colors)
-rev_adj = collect_reverse_adjacencies(hash_to_num, tile_set, num_colors, num_states)
+    # hash_to_num, num_to_hash, tile_set = build_3D_tilemap_hashes(tiles, weights, num_colors)
+    # rev_adj = collect_reverse_adjacencies(hash_to_num, tile_set, num_colors, num_states)
 
-create_voxel_mesh(tilemap.tolist(), idx_to_color)
-
-
+    create_voxel_mesh(tilemap.tolist(), idx_to_color)
 
 
 
 
-grid_size = 25
-tile_size = 2
-stride = 1 
-chunks = 1
-app = Ursina()
-
-# Sets up the Ursina enviornment
-
-# Lighting
-DirectionalLight().look_at(Vec3(1, -1, -1))
-AmbientLight(color=color.rgba(100, 100, 100, 0.5))
-
-camera_spot = grid_size * chunks / 2
-
-# Camera
-camera.position = (camera_spot, camera_spot, -(chunks*grid_size*2))
-camera.look_at(Vec3(grid_size/2, -5, 0))
 
 
-mouse.locked = True
+    grid_size = 8
+    tile_size = 2
+    stride = 1 
+    chunks = 1
+    app = Ursina()
 
-def input(key):
-    if key == 'q':
-        application.quit()
-    if key == 'backspace':
-        camera.position = (camera_spot, camera_spot, -(chunks * grid_size * 2))
-        camera.look_at(Vec3(grid_size/2, -5, 0))
+    # Sets up the Ursina enviornment
 
-def update():
-    base_speed = 5
-    speed_multiplier = 10 if held_keys['shift'] else 1
-    speed = base_speed * speed_multiplier * time.dt
+    # Lighting
+    DirectionalLight().look_at(Vec3(1, -1, -1))
+    AmbientLight(color=color.rgba(100, 100, 100, 0.5))
 
-    if held_keys['w']:
-        camera.position += camera.forward * speed
-    if held_keys['s']:
-        camera.position -= camera.forward * speed
-    if held_keys['a']:
-        camera.position -= camera.right * speed
-    if held_keys['d']:
-        camera.position += camera.right * speed
+    camera_spot = grid_size * chunks / 2
 
-    # Move up
-    if held_keys['space']:
-        camera.position += Vec3(0, speed * 20 * time.dt, 0)
-    # Move down
-    if held_keys['control']:
-        camera.position -= Vec3(0, speed * 20 * time.dt, 0)
+    # Camera
+    camera.position = (camera_spot, camera_spot, -(chunks*grid_size*2))
+    camera.look_at(Vec3(grid_size/2, -5, 0))
 
-    camera.rotation_y += mouse.velocity[0] * 40
-    camera.rotation_x -= mouse.velocity[1] * 40
-    camera.rotation_x = clamp(camera.rotation_x, -90, 90)
 
-app.run()
+    mouse.locked = True
+
+    def input(key):
+        if key == 'q':
+            application.quit()
+        if key == 'backspace':
+            camera.position = (camera_spot, camera_spot, -(chunks * grid_size * 2))
+            camera.look_at(Vec3(grid_size/2, -5, 0))
+
+    def update():
+        base_speed = 5
+        speed_multiplier = 10 if held_keys['shift'] else 1
+        speed = base_speed * speed_multiplier * time.dt
+
+        if held_keys['w']:
+            camera.position += camera.forward * speed
+        if held_keys['s']:
+            camera.position -= camera.forward * speed
+        if held_keys['a']:
+            camera.position -= camera.right * speed
+        if held_keys['d']:
+            camera.position += camera.right * speed
+
+        # Move up
+        if held_keys['space']:
+            camera.position += Vec3(0, speed * 20 * time.dt, 0)
+        # Move down
+        if held_keys['control']:
+            camera.position -= Vec3(0, speed * 20 * time.dt, 0)
+
+        camera.rotation_y += mouse.velocity[0] * 40
+        camera.rotation_x -= mouse.velocity[1] * 40
+        camera.rotation_x = clamp(camera.rotation_x, -90, 90)
+
+    app.run()
 
 
