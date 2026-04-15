@@ -1,9 +1,10 @@
 from TileCollection3D import *
 from collections import deque
 
+sys.setrecursionlimit(10**6)
+
 directions = ['t','b','n','s','e','w']
-dir_steps = [(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,1),(0,0,-1)] # TODO - check if dir_steps is correct & matches with adjacencies
-# in TileCollection3D.py - final area might not make sense.
+dir_steps = [(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,1),(0,0,-1)]
 
 def generate_3D_fully_recursive(gen_size, hash_to_num, num_to_hash, tile_set, num_colors, tile_size=2, stride=1):
     num_states = len(tile_set.keys())
@@ -174,7 +175,7 @@ def build_grid_from_cell_space(state_space, gen_size, space_size, tile_size, num
 
 
 if __name__ == "__main__":
-    grid_size = 10
+    grid_size = 8
     tile_size = 2
     stride = 1
 
@@ -191,8 +192,9 @@ if __name__ == "__main__":
 
     space = space[::-1]
 
+    # create_voxel_mesh(tilemap.tolist(), idx_to_color)
     create_voxel_mesh(space.tolist(), idx_to_color)
-    print(res)
+    # print(res)
 
     chunks = 1
     app = Ursina()
