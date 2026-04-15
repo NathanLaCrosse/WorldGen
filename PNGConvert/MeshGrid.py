@@ -77,10 +77,7 @@ def get_color(world_grid, x, y, z, index_to_color):
         return color.rgba(0, 0, 0, 0)  # fully transparent
 
     # Get color from your index-to-color mapping
-    if z is not None:
-        colors = index_to_color[z][val]
-    else:
-        colors = index_to_color[val]
+    colors = index_to_color[val]
 
     if colors[0] == 0 and colors[1] == 0 and colors[2] == 0:
         return color.rgba(0, 0, 0, 0)  # fully transparent
