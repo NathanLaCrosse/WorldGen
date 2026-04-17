@@ -77,7 +77,7 @@ def hash_3D_tile(tile, num_colors):
 
     hash = 0
     for i in range(len(flat)):
-        hash += flat[i] * num_colors**i
+        hash += int(flat[i]) * num_colors**i
 
     return hash
 

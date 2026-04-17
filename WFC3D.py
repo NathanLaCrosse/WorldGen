@@ -8,6 +8,8 @@ dir_steps = [(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,1),(0,0,-1)]
 
 # Gensize (int) -> tuple of ints
 def generate_3D_fully_recursive(gen_size, hash_to_num, num_to_hash, tile_set, num_colors, tile_size=2, stride=1, presets=None):
+    assert (gen_size[0] - tile_size) % stride == 0 and (gen_size[1] - tile_size) % stride == 0 and (gen_size[2] - tile_size) % stride == 0, "Incompatible Tile/Stride/Grid_Size Combination"
+    
     num_states = len(tile_set.keys())
 
     rev_adj = collect_reverse_adjacencies(hash_to_num, tile_set, num_colors, num_states, tile_size=tile_size, stride=stride)
@@ -187,26 +189,32 @@ def build_grid_from_cell_space(state_space, gen_size, space_size, tile_size, num
     return grid
 
 if __name__ == "__main__":
-    gen_size = (10,32,32)
+    gen_size = (10,10,10)
     # gen_size = (2,2,2)
-    tile_size = 2
+    tile_size = 4
     stride = 1
 
     tilemap, idx_to_color, color_to_idx = construct_3D_tilemap(7,32,32,png_folder="Generation_3D/images_3D/terraintest", png_names="terrain")
 
-    tiles, weights = collect_3D_tiles(tilemap, 2)
+    tiles, weights = collect_3D_tiles(tilemap, tile_size)
 
     num_colors = len(idx_to_color.keys())
     num_states = len(tiles)
 
     hash_to_num, num_to_hash, tile_set = build_3D_tilemap_hashes(tiles, weights, num_colors)
 
-    presets = [
-        ((0,0,0), 0),
-        ((1,0,0), 0),
-        ((2,0,0), 0),
-        ((3,0,0), 0)
-    ]
+    # presets = [
+    #     ((0,0,0), 0),
+    #     ((1,0,0), 0),
+    #     ((2,0,0), 0),
+    #     ((3,0,0), 0)
+    # ]
+    # Set the first layer to stone
+    presets = []
+    space_size = ((gen_size[0] - tile_size)//stride + 1, (gen_size[1] - tile_size)//stride + 1, (gen_size[2] - tile_size)//stride + 1)
+    for i in range(space_size[1]):
+        for j in range(space_size[2]):
+            presets.append(((0, i, j), 0))
 
     space, res = generate_3D_fully_recursive(gen_size, hash_to_num, num_to_hash, tile_set, num_colors, tile_size, stride, presets=presets)
 
@@ -217,13 +225,17 @@ if __name__ == "__main__":
     print(res)
 
     chunks = 1
+    grid_size = gen_size[0]
     app = Ursina()
 
     # Sets up the Ursina enviornment
 
     # Lighting
-    DirectionalLight().look_at(Vec3(1, -1, -1))
-    AmbientLight(color=color.rgba(100, 100, 100, 0.5))
+    # DirectionalLight().look_at(Vec3(1, -1, -1))
+    # AmbientLight(color=color.rgba(100, 100, 100, 0.5))
+
+    DirectionalLight(x=grid_size/2,y=1+3, z=grid_size/2, shadows=True, rotation=(45, -45, 45)).look_at(Vec3(1, -1, -1))
+    AmbientLight(color=color.rgba(30, 30, 30, 1))
 
     grid_size = gen_size[0]
     camera_spot = grid_size * chunks / 2
