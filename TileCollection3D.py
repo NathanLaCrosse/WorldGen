@@ -67,8 +67,8 @@ def collect_3D_tiles(tilemap, tile_size, rotation=False):
                     weights[tile_table[tile_tuple]] += 1
     
     # Returns:
-    # tiles - list of all tiles found in the tilemap, stored as 3d numpy arrays
-    # weights - list of the weights (frequency) of each of the tiles
+    # tiles - all tiles found in the tilemap, stored as 3d numpy arrays
+    # weights - the weights (frequency) of each of the tiles
     return tiles, weights
 
 
