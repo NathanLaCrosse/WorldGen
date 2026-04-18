@@ -1,5 +1,6 @@
 from ursina import *
 from PNGConvert.MeshGrid import get_color
+from ursina.shaders import lit_with_shadows_shader
 
 def create_voxel_mesh(world_3d, index_to_color_3d):
     vertices = []
@@ -71,4 +72,4 @@ def create_voxel_mesh(world_3d, index_to_color_3d):
     mesh = Mesh(vertices=vertices, triangles=triangles, colors=colors, mode='triangle')
     mesh.generate_normals()
 
-    Entity(model=mesh, double_sided=True)
+    return Entity(model=mesh, double_sided=True, shader=lit_with_shadows_shader)

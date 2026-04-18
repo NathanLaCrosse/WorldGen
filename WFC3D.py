@@ -193,7 +193,7 @@ if __name__ == "__main__":
     space = space[::-1]
 
     # create_voxel_mesh(tilemap.tolist(), idx_to_color)
-    create_voxel_mesh(space.tolist(), idx_to_color)
+    image = create_voxel_mesh(space.tolist(), idx_to_color)
     # print(res)
 
     chunks = 1

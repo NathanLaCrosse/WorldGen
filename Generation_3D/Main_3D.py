@@ -18,8 +18,8 @@ from ursina import *
 from PNGConvert.ImagePNG import imageLoad 
 from PNGConvert.WaveFunc import WaveFunc3D 
 from Generation_3D.Mesh_3D import create_voxel_mesh
-from Generation_3D.Samples_3D import Gather_samples
-
+from TileCollection3D import *
+from WFC3D import generate_3D_fully_recursive
 import numpy as np
 
 def ThreeD_Main(tile_size, rotation = False, png_folder="building",png_names="building", grid_size = 5, num_images = 5, sample_only = False):
@@ -50,15 +50,38 @@ def ThreeD_Main(tile_size, rotation = False, png_folder="building",png_names="bu
             grid_3d.append(grid_)
             index_to_color_3d.append(index_to_color)
 
-    #TODO create a sample gathering function 
-    Gather_samples(three_dimensional,three_dimensional_weights)
-
     # Determins if we did WFC or just want to print the sample image
     if (not sample_only):
         # Using the png to create grid size image
-        create_voxel_mesh(grid_3d, index_to_color_3d)
+        image = create_voxel_mesh(grid_3d, index_to_color_3d)
     else:
         # To print the sample image
-        create_voxel_mesh(three_dimensional, None)
+        image = create_voxel_mesh(three_dimensional, None)
+
+def new_3D_main(grid_size, tile_size, stride, num_layers, png_folder, png_names, rotations, chunks, length, width):
+    grid_size = grid_size
+    tile_size = tile_size
+    stride = stride
+
+    tilemap, idx_to_color, color_to_idx = construct_3D_tilemap(num_layers,length,width,png_folder, png_names)
+
+    tiles, weights = collect_3D_tiles(tilemap, tile_size, rotations)
+
+    num_colors = len(idx_to_color.keys())
+    num_states = len(tiles)
+
+    hash_to_num, num_to_hash, tile_set = build_3D_tilemap_hashes(tiles, weights, num_colors)
+
+    space, res = generate_3D_fully_recursive(grid_size, hash_to_num, num_to_hash, tile_set, num_colors, tile_size, stride)
+
+    #space = space[::-1]
+
+    # create_voxel_mesh(tilemap.tolist(), idx_to_color)
+    image = create_voxel_mesh(space.tolist(), idx_to_color)
+    # print(res)
+
+    chunks = chunks
+
+    return image
     
 

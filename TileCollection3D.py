@@ -74,7 +74,6 @@ def collect_3D_tiles(tilemap, tile_size, rotation=False):
 
 def hash_3D_tile(tile, num_colors):
     flat = tile.flatten()
-
     hash = 0
     for i in range(len(flat)):
         hash += flat[i] * num_colors**i
@@ -165,7 +164,7 @@ if __name__ == "__main__":
     # hash_to_num, num_to_hash, tile_set = build_3D_tilemap_hashes(tiles, weights, num_colors)
     # rev_adj = collect_reverse_adjacencies(hash_to_num, tile_set, num_colors, num_states)
 
-    create_voxel_mesh(tilemap.tolist(), idx_to_color)
+    image = create_voxel_mesh(tilemap.tolist(), idx_to_color)
 
 
 
