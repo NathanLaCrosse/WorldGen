@@ -6,7 +6,7 @@ import numpy as np
 # General parms
 grid_size = 15 # output grid size
 tile_size = 2 # For sample tiles
-rotation = False # If we want rotations allowed
+rotation = True # If we want rotations allowed
 png_name = "mount" # Name of the PNG file in the images folder
 
 # 2-D only Parms
@@ -61,7 +61,7 @@ image.y = -center_y
 image.z = -center_z
 
 # Lighting
-DirectionalLight(x=grid_size/2, y=num_images+10, z=grid_size/2, shadows=True, rotation=(45, -45, 45)).look_at(Vec3(1, -1, -1))
+DirectionalLight(x=grid_size/2, y=num_images+3, z=grid_size/2, shadows=True, rotation=(45, -45, 45)).look_at(Vec3(1, -1, -1))
 AmbientLight(color=color.rgba(30, 30, 30, 0.5))
 
 camera_spot = grid_size * chunks / 2

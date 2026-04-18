@@ -39,6 +39,13 @@ def construct_3D_tilemap(layers=5, rows=5, cols=5, png_folder="Generation_3D/ima
     # color_to_idx - hash table for mapping a tuple of colors into an int
     return tilemap, idx_to_color, color_to_idx
 
+def rotate(tile, times):
+    rotated = tile.copy()
+    for _ in range(times):
+        # np.rot90 on axes (1,2) rotates in the horizontal plane (X-Z)
+        rotated = np.rot90(rotated, k=1, axes=(1, 2))
+    return rotated
+
 # Collect cubes from the sample tilemap
 def collect_3D_tiles(tilemap, tile_size, rotation=False):
     # Get dimensions of the tilemap
@@ -55,16 +62,21 @@ def collect_3D_tiles(tilemap, tile_size, rotation=False):
         for j in range(height - tile_size + 1):
             for k in range(width - tile_size + 1):
                 tile = tilemap[i:i+tile_size, j:j+tile_size, k:k+tile_size]
+                
+                rotations = [tile]
+                if rotation:
+                    rotations = [rotate(tile, r) for r in range(4)]
 
-                tile_tuple = tuple(tile.flatten().tolist()) # For comparisons - collapse to tuple
+                for rotated in rotations:
+                    tile_tuple = tuple(rotated.flatten().tolist()) # For comparisons - collapse to tuple
 
-                if tile_tuple not in tile_table.keys():
-                    tiles.append(tile.copy()) # Add slice to tiles
-                    weights.append(1)
-                    tile_table[tile_tuple] = dex
-                    dex += 1
-                else:
-                    weights[tile_table[tile_tuple]] += 1
+                    if tile_tuple not in tile_table.keys():
+                        tiles.append(rotated.copy()) # Add slice to tiles
+                        weights.append(1)
+                        tile_table[tile_tuple] = dex
+                        dex += 1
+                    else:
+                        weights[tile_table[tile_tuple]] += 1
     
     # Returns:
     # tiles - list of all tiles found in the tilemap, stored as 3d numpy arrays
@@ -156,7 +168,7 @@ def collect_reverse_adjacencies(hash_to_num, tile_set, num_colors, num_states,
 if __name__ == "__main__":
     tilemap, idx_to_color, color_to_idx = construct_3D_tilemap(5,8,8,png_folder="Generation_3D/images_3D/gimmickgrass", png_names="richgrass")
 
-    tiles, weights = collect_3D_tiles(tilemap, 2)
+    tiles, weights = collect_3D_tiles(tilemap, 2, True)
 
     # num_colors = len(idx_to_color.keys())
     # num_states = len(tiles)
