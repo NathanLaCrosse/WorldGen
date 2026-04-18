@@ -58,12 +58,12 @@ def ThreeD_Main(tile_size, rotation = False, png_folder="building",png_names="bu
         # To print the sample image
         image = create_voxel_mesh(three_dimensional, None)
 
-def new_3D_main(grid_size, tile_size, stride, num_layers, png_folder, png_names, rotations, chunks, length, width):
+def new_3D_main(grid_size, tile_size, stride, num_layers, png_folder, png_names, rotations, chunks, length, width, surface_start):
     grid_size = grid_size
     tile_size = tile_size
     stride = stride
 
-    tilemap, idx_to_color, color_to_idx = construct_3D_tilemap(num_layers,length,width,png_folder, png_names)
+    tilemap, idx_to_color, color_to_idx = construct_3D_tilemap(num_layers,length,width,png_folder, png_names, surface_start)
 
     tiles, weights = collect_3D_tiles(tilemap, tile_size, rotations)
 

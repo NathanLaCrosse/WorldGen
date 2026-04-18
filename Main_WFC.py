@@ -21,9 +21,10 @@ sample_only = True # If true, only creates the sample image, if false creates th
 png_folder = "Generation_3D/images_3D/mount"
 rows = 30
 cols = 30
+Surface_start = 9
 
 # Main 3D WFC handler
-image = new_3D_main(grid_size, tile_size, stride, num_images, png_folder, png_name, rotation, chunks, rows, cols)
+image = new_3D_main(grid_size, tile_size, stride, num_images, png_folder, png_name, rotation, chunks, rows, cols, Surface_start)
 
 # 2-D WFC
 # RunPNG(

@@ -6,14 +6,19 @@ from ursina import *
 from Generation_3D.Mesh_3D import create_voxel_mesh
 
 # Convert a series of images into a 3D tilemap
-def construct_3D_tilemap(layers=5, rows=5, cols=5, png_folder="Generation_3D/images_3D/grass", png_names="grass"):
+def construct_3D_tilemap(layers=5, rows=5, cols=5, png_folder="Generation_3D/images_3D/grass", png_names="grass", surface_start=0):
     tilemap = np.zeros((layers, rows, cols))
     
     # Two hashtables for translating between color & index space
     idx_to_color = {}
     color_to_idx = {}
 
-    dex = 0
+    color_to_idx[(0,0,0)] = 0
+    idx_to_color[0] = (0,0,0)
+    color_to_idx[(0,0,0)] = 1
+    idx_to_color[1] = (0,0,0)
+
+    dex = 2
     for i in range(layers):
         png_name = f"{png_names}{i}"
 
@@ -24,7 +29,14 @@ def construct_3D_tilemap(layers=5, rows=5, cols=5, png_folder="Generation_3D/ima
         for j, k in np.ndindex((pixel_ar.shape[0], pixel_ar.shape[1])):
             # Convert the slice of the image's color channels to a tuple index
             color_tuple = tuple(pixel_ar[j, k, :].tolist())
-
+            
+            if color_tuple == (0, 0, 0):
+                if i < surface_start:
+                    tilemap[i, j, k] = 1  # Underground air
+                else:
+                    tilemap[i, j, k] = 0  # Above-surface air
+                continue
+            
             if color_tuple not in color_to_idx.keys():
                 color_to_idx[color_tuple] = dex
                 idx_to_color[dex] = color_tuple
