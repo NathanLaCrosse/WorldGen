@@ -1,39 +1,63 @@
 from TileCollection3D import *
 from collections import deque
+import pickle
 
 sys.setrecursionlimit(10**6)
 
 directions = ['t','b','n','s','e','w']
 dir_steps = [(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,1),(0,0,-1)]
 
-def generate_3D_fully_recursive(gen_size, hash_to_num, num_to_hash, tile_set, num_colors, tile_size=2, stride=1):
-    num_states = len(tile_set.keys())
+# Gensize (int) -> tuple of ints
+def generate_3D_fully_recursive(gen_size, tile_to_dex, dex_to_tile, weights, num_colors, tile_size=2, stride=1, presets=None, rev_adj=None):
+    assert (gen_size[0] - tile_size) % stride == 0 and (gen_size[1] - tile_size) % stride == 0 and (gen_size[2] - tile_size) % stride == 0, "Incompatible Tile/Stride/Grid_Size Combination"
+    
+    num_states = len(dex_to_tile.keys())
+    
+    if rev_adj is None:
+        rev_adj = collect_reverse_adjacencies(dex_to_tile, num_states, tile_size=tile_size, stride=stride)
 
-    rev_adj = collect_reverse_adjacencies(hash_to_num, tile_set, num_colors, num_states, tile_size=tile_size, stride=stride)
+        print("Adjacencies Built!")
 
     # Stuff for sampling from superpositions
-    weights = np.array(list(tile_set.values()))
+    weights = np.array(weights)
     args = np.arange(num_states)
 
     # Calculate dimensions of the cell space
-    space_size = (gen_size - tile_size)//stride + 1
+    space_size = ((gen_size[0] - tile_size)//stride + 1, (gen_size[1] - tile_size)//stride + 1, (gen_size[2] - tile_size)//stride + 1)
 
     # Initialize space
-    cell_space = np.ones((space_size, space_size, space_size, num_states), dtype=bool)
-    state_space = np.ones((space_size, space_size, space_size), dtype=np.int64) * -1
+    cell_space = np.ones((space_size[0], space_size[1], space_size[2], num_states), dtype=bool)
+    state_space = np.ones((space_size[0], space_size[1], space_size[2]), dtype=np.int64) * -1
 
     # Intialize entropy grid - all the same since equal superposition
-    entropy_grid = np.ones((space_size, space_size, space_size), dtype=np.uint64) * num_states
+    entropy_grid = np.ones((space_size[0], space_size[1], space_size[2]), dtype=np.uint64) * num_states
+
+    collapsed = 0
+    if presets is not None:
+        # If presets are passed in, initialized grid with some states
+        q = deque()
+        m = deque()
+        for pos, state_dex in presets:
+            enqueue(q, pos, state_dex, cell_space, state_space, entropy_grid, rev_adj, space_size, num_states)
+        
+        # Propagate changes
+        propagate_BFS(q, m, cell_space, state_space, entropy_grid, rev_adj, space_size, num_states)
+        collapsed = len(presets)
+
+        print(len(m))
 
     # Call recursive method to solve for the entire space
-    res = recursive_generation(cell_space, state_space, entropy_grid, args, weights, num_to_hash, hash_to_num, rev_adj, num_states, 0, space_size)
+    res = recursive_generation(cell_space, state_space, entropy_grid, args, weights, dex_to_tile, tile_to_dex, rev_adj, num_states, collapsed, space_size)
 
-    return build_grid_from_cell_space(state_space, gen_size, space_size, tile_size, num_colors, stride), res
+    if res:
+        return build_grid_from_cell_space(state_space, gen_size, space_size, tile_size, num_colors, stride, dex_to_tile), res
+    else:
+        return np.zeros(gen_size), res
 
-def recursive_generation(cell_space, state_space, entropy_grid, args, weights, num_to_hash, hash_to_num, rev_adj, 
+def recursive_generation(cell_space, state_space, entropy_grid, args, weights, dex_to_tile, tile_to_dex, rev_adj, 
                          num_states, collapse_count, space_size):
     
-    if collapse_count == space_size**3:
+    if collapse_count == space_size[0] * space_size[1] * space_size[2]:
         return True # Grid fully generated!
     
     if entropy_grid.min() == 0:
@@ -59,68 +83,14 @@ def recursive_generation(cell_space, state_space, entropy_grid, args, weights, n
 
         # Choose a random state index - update board accordingly
         index = np.random.choice(args, p=p/p.sum())
-        cell_space[depth, row, col] = np.zeros(num_states, dtype=bool)
-        cell_space[depth, row, col, index] = True
-        state_space[depth, row, col] = num_to_hash[index]
-        entropy_grid[depth, row, col] = 100000
-
-        # Propagate outward
-        for i in range(len(directions)):
-            step = dir_steps[i]
-
-            # Skip over out-of-bounds nodes
-            if (depth + step[0] < 0 or depth + step[0] > space_size-1 or row + step[1] < 0 or row + step[1] > space_size-1
-                        or col + step[2] < 0 or col + step[2] > space_size-1):
-                continue
-
-            adj = build_allowed_superposition(cell_space, rev_adj, (depth, row, col), (depth+step[0], row+step[1], col+step[2]), directions[i])
-            queue.append((depth+step[0], row+step[1], col+step[2], adj))
+        enqueue(queue, (depth, row, col), index, cell_space, state_space, entropy_grid, rev_adj, space_size, num_states)
 
         # Perform a BFS until the grid is no longer getting updated
-        is_valid = True
-        while queue:
-            qd, qr, qc, adj = queue.popleft()
-
-            if qd < 0 or qd > space_size-1 or qr < 0 or qr > space_size-1 or qc < 0 or qc > space_size-1:
-                continue  # Skip if out-of-bounds
-            if state_space[qd, qr, qc] != -1:
-                continue  # Skip if state is collapsed
-
-            # update based on given adjacencies
-            old_cell = cell_space[qd, qr, qc].copy()
-            cell_space[qd,qr,qc] &= adj
-
-            # Check if the old state is different than the new state
-            if (old_cell ^ cell_space[qd, qr, qc]).any() > 0:
-                if cell_space[qd, qr, qc].sum() == 0:
-                    is_valid = False # No valid states left - leave loop
-                    break
-
-                # Update entropy grid
-                old_entropy = entropy_grid[qd, qr, qc]
-                entropy_grid[qd, qr, qc] = cell_space[qd, qr, qc].sum()
-                if state_space[qd, qr, qc] != -1:
-                    entropy_grid[qd, qr, qc] = 100000
-
-                # Add to backprop queue
-                modifications.append((qd, qr, qc, old_cell, old_entropy))
-
-                # Propagate further 
-                for i in range(len(directions)):
-                    step = dir_steps[i]
-
-                    # Skip over out-of-bounds nodes
-                    if (qd + step[0] < 0 or qd + step[0] > space_size-1 or qr + step[1] < 0 or qr + step[1] > space_size-1
-                                or qc + step[2] < 0 or qc + step[2] > space_size-1):
-                        continue
-
-                    adj = build_allowed_superposition(cell_space, rev_adj, (qd, qr, qc), (qd+step[0], qr+step[1], qc+step[2]), directions[i])
-                    queue.append((qd+step[0], qr+step[1], qc+step[2], adj))
-
+        is_valid = propagate_BFS(queue, modifications, cell_space, state_space, entropy_grid, rev_adj, space_size, num_states)
 
         # If we successfully propogate with no contradictions, recurse deeper.
         if is_valid:
-            result = recursive_generation(cell_space, state_space, entropy_grid, args, weights, num_to_hash, hash_to_num, 
+            result = recursive_generation(cell_space, state_space, entropy_grid, args, weights, dex_to_tile, tile_to_dex, 
                                           rev_adj, num_states, collapse_count+1, space_size)
 
             # If we sucessfully recurse, we're done!
@@ -148,6 +118,60 @@ def recursive_generation(cell_space, state_space, entropy_grid, args, weights, n
 
     return False
 
+def enqueue(queue, pos, state_dex, cell_space, state_space, entropy_grid, rev_adj, space_size, num_states):
+    # Only collapse if given a valid state_dex
+    if state_dex != -1:
+        cell_space[pos] = np.zeros(num_states, dtype=bool)
+        cell_space[pos[0], pos[1], pos[2], state_dex] = True
+        state_space[pos] = state_dex
+        entropy_grid[pos] = 100000
+
+    for i in range(len(directions)):
+        step = dir_steps[i]
+
+        # Skip over out-of-bounds nodes
+        if (pos[0] + step[0] < 0 or pos[0] + step[0] > space_size[0]-1 or pos[1] + step[1] < 0 or pos[1] + step[1] > space_size[1]-1
+                    or pos[2] + step[2] < 0 or pos[2] + step[2] > space_size[2]-1):
+            continue
+        
+        neighbor_pos = (pos[0] + step[0], pos[1] + step[1], pos[2] + step[2])
+
+        adj = build_allowed_superposition(cell_space, rev_adj, pos, neighbor_pos, directions[i])
+        queue.append((neighbor_pos[0], neighbor_pos[1], neighbor_pos[2], adj))
+
+def propagate_BFS(queue, modifications, cell_space, state_space, entropy_grid, rev_adj, space_size, num_states):
+    # Loop until queue is empty or we finish early
+    while queue:
+        qd, qr, qc, adj = queue.popleft()
+
+        if qd < 0 or qd > space_size[0]-1 or qr < 0 or qr > space_size[1]-1 or qc < 0 or qc > space_size[2]-1:
+            continue  # Skip if out-of-bounds
+        elif state_space[qd, qr, qc] != -1:
+            continue  # Skip if already collapsed
+
+        # update based on given adjacencies
+        old_cell = cell_space[qd, qr, qc].copy()
+        cell_space[qd, qr, qc] &= adj
+
+        # Check if the old state is different than the new state
+        if (old_cell ^ cell_space[qd, qr, qc]).any() > 0:
+            if cell_space[qd, qr, qc].sum() == 0:
+                return False # No valid states left - leave loop
+
+            # Update entropy grid
+            old_entropy = entropy_grid[qd, qr, qc]
+            entropy_grid[qd, qr, qc] = cell_space[qd, qr, qc].sum()
+            if state_space[qd, qr, qc] != -1:
+                entropy_grid[qd, qr, qc] = 100000
+
+            # Add to backprop queue
+            modifications.append((qd, qr, qc, old_cell, old_entropy))
+
+            # Propagate further 
+            enqueue(queue, (qd, qr, qc), -1, cell_space, state_space, entropy_grid, rev_adj, space_size, num_states)
+
+    return True
+
 # Unchanged from original wave function collapse except for adjustments to parameters.
 def build_allowed_superposition(cell_space, rev_adjacencies, source_pos, sink_pos, direction):
     c_ar = cell_space[source_pos] # This is a binary array
@@ -158,53 +182,95 @@ def build_allowed_superposition(cell_space, rev_adjacencies, source_pos, sink_po
     return allowed_states & cell_space[sink_pos]
 
 # Translate from state space into color index space
-def build_grid_from_cell_space(state_space, gen_size, space_size, tile_size, numColors, stride):
-    grid = np.zeros((gen_size,gen_size,gen_size), dtype=np.int64)
+def build_grid_from_cell_space(state_space, gen_size, space_size, tile_size, numColors, stride, dex_to_tile):
+    grid = np.zeros((gen_size[0],gen_size[1],gen_size[2]), dtype=np.int64)
 
-    for i in range(0, space_size):
-        for j in range(0, space_size):
-            for k in range(0, space_size):
+    for i in range(0, space_size[0]):
+        for j in range(0, space_size[1]):
+            for k in range(0, space_size[2]):
                 d = i*stride
                 r = j*stride
                 c = k*stride
-                grid[d:d+tile_size, r:r+tile_size, c:c+tile_size] = reverse_3D_hash(state_space[i,j,k], numColors, tile_size)
+                grid[d:d+tile_size, r:r+tile_size, c:c+tile_size] = dex_to_tile[state_space[i,j,k]]
 
     return grid
 
-
-
-
 if __name__ == "__main__":
-    grid_size = 8
+    gen_size = (6,8,8)
+    # gen_size = (2,2,2)
     tile_size = 2
     stride = 1
 
-    tilemap, idx_to_color, color_to_idx = construct_3D_tilemap(8,8,8,png_folder="Generation_3D/images_3D/richgrass", png_names="richgrass")
+    mode = "load"
+    load_tilemap = True
 
-    tiles, weights = collect_3D_tiles(tilemap, 2)
+    rev_adj = None
+    if mode == "save":
+        tilemap, idx_to_color, color_to_idx = construct_3D_tilemap(7,32,32,png_folder="Generation_3D/images_3D/terraintest", png_names="terrain")
 
-    num_colors = len(idx_to_color.keys())
-    num_states = len(tiles)
+        tiles, weights = collect_3D_tiles(tilemap, tile_size, rotation=True)
+        print("Tiles Collected!")
 
-    hash_to_num, num_to_hash, tile_set = build_3D_tilemap_hashes(tiles, weights, num_colors)
+        num_colors = len(idx_to_color.keys())
+        num_states = len(tiles)
 
-    space, res = generate_3D_fully_recursive(grid_size, hash_to_num, num_to_hash, tile_set, num_colors, tile_size, stride)
+        tile_to_dex, dex_to_tile = build_3D_tile_hashes(tiles)
+        print("Hash Tables Completed!")
 
-    space = space[::-1]
+        rev_adj = collect_reverse_adjacencies(dex_to_tile, num_states, tile_size=tile_size, stride=stride)
+        print("Adjacencies Built!")
 
-    # create_voxel_mesh(tilemap.tolist(), idx_to_color)
-    image = create_voxel_mesh(space.tolist(), idx_to_color)
-    # print(res)
+        with open("Saved_Data/data.pkl", "wb") as file:
+            pickle.dump([tilemap, idx_to_color, color_to_idx, tiles, weights, tile_to_dex, dex_to_tile, rev_adj], file)
+        print("Data Saved!")
+    
+    else:
+        with open("Saved_Data/data.pkl", "rb") as file:
+            tilemap, idx_to_color, color_to_idx, tiles, weights, tile_to_dex, dex_to_tile, rev_adj = pickle.load(file)
+        
+        num_colors = len(idx_to_color.keys())
+        num_states = len(tiles)
+
+    if not load_tilemap:
+        # Set the first layer to stone
+        presets = []
+        space_size = ((gen_size[0] - tile_size)//stride + 1, (gen_size[1] - tile_size)//stride + 1, (gen_size[2] - tile_size)//stride + 1)
+        for i in range(space_size[1]//2):
+            for j in range(space_size[2]//2):
+                presets.append(((0, i, j), 0))
+
+        space, res = generate_3D_fully_recursive(gen_size, tile_to_dex, dex_to_tile, weights, num_colors, tile_size, stride, presets, rev_adj=rev_adj)
+        print("Was space generated correctly?", res)
+
+        if mode == "save" and res:
+            with open("Saved_Data/space.pkl", "wb") as file:
+                pickle.dump(space, file)
+    else:
+        space_size = ((gen_size[0] - tile_size)//stride + 1, (gen_size[1] - tile_size)//stride + 1, (gen_size[2] - tile_size)//stride + 1)
+        with open("Saved_Data/space.pkl", "rb") as file:
+            space = pickle.load(file)
+        
+        
+
+    # space = space[::-1]
+
+    # create_voxel_mesh(tiles[0], idx_to_color)
+    create_voxel_mesh(space.tolist(), idx_to_color)
 
     chunks = 1
+    grid_size = gen_size[0]
     app = Ursina()
 
     # Sets up the Ursina enviornment
 
     # Lighting
-    DirectionalLight().look_at(Vec3(1, -1, -1))
-    AmbientLight(color=color.rgba(100, 100, 100, 0.5))
+    # DirectionalLight().look_at(Vec3(1, -1, -1))
+    # AmbientLight(color=color.rgba(100, 100, 100, 0.5))
 
+    DirectionalLight(x=grid_size/2,y=1+3, z=grid_size/2, shadows=True, rotation=(45, -45, 45)).look_at(Vec3(1, -1, -1))
+    AmbientLight(color=color.rgba(30, 30, 30, 1))
+
+    grid_size = gen_size[0]
     camera_spot = grid_size * chunks / 2
 
     # Camera

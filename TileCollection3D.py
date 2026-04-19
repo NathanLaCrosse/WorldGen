@@ -7,7 +7,7 @@ from Generation_3D.Mesh_3D import create_voxel_mesh
 
 # Convert a series of images into a 3D tilemap
 def construct_3D_tilemap(layers=5, rows=5, cols=5, png_folder="Generation_3D/images_3D/grass", png_names="grass", surface_start=0):
-    tilemap = np.zeros((layers, rows, cols))
+    tilemap = np.zeros((layers, rows, cols), dtype=np.uint8)
     
     # Two hashtables for translating between color & index space
     idx_to_color = {}
@@ -91,56 +91,28 @@ def collect_3D_tiles(tilemap, tile_size, rotation=False):
                         weights[tile_table[tile_tuple]] += 1
     
     # Returns:
-    # tiles - list of all tiles found in the tilemap, stored as 3d numpy arrays
-    # weights - list of the weights (frequency) of each of the tiles
+    # tiles - all tiles found in the tilemap, stored as 3d numpy arrays
+    # weights - the weights (frequency) of each of the tiles
     return tiles, weights
 
 
-def hash_3D_tile(tile, num_colors):
-    flat = tile.flatten()
-    hash = 0
-    for i in range(len(flat)):
-        hash += flat[i] * num_colors**i
-
-    return hash
-
-def reverse_3D_hash(num, num_colors, tile_size):
-    tile = np.zeros(tile_size * tile_size * tile_size, dtype=np.int64)
-    n = num
-
-    for i in range(len(tile)):
-        tile[i] = n % num_colors
-        n = n // num_colors
-
-    return tile.reshape((tile_size, tile_size, tile_size))
-
-
-def build_3D_tilemap_hashes(tiles, weights, num_colors):
-    tile_set = {}
-    hash_to_num = {}
-    num_to_hash = {}
+def build_3D_tile_hashes(tiles):
+    dex_to_tile = {}
+    tile_to_dex = {}
 
     for i in range(len(tiles)):
-        h = hash_3D_tile(tiles[i], num_colors)
+        dex_to_tile[i] = tiles[i]
 
-        tile_set[h] = weights[i]
+        tile_to_dex[tuple(tiles[i].flatten().tolist())] = i
 
-        hash_to_num[h] = i
-        num_to_hash[i] = h
+    return tile_to_dex, dex_to_tile
     
-    return hash_to_num, num_to_hash, tile_set
-
-# Currently the exact same as tile_collection... 
-# Could be speed up by mapping back to numpy arrays and slicing...
-def compare_3D_hashes(h1, h2, t1_border, t2_border,num_colors):
+def compare_tiles(t1, t2, t1_border, t2_border):
     assert len(t1_border) == len(t2_border), "Border Sizes Must Match"
 
-    for i in range(len(t1_border)):
-        if (h1 // num_colors**t1_border[i]) % num_colors != (h2 // num_colors**t2_border[i]) % num_colors:
-            return False
-    return True
+    return (t1.flatten()[t1_border] == t2.flatten()[t2_border]).all()
 
-def collect_reverse_adjacencies(hash_to_num, tile_set, num_colors, num_states, 
+def collect_reverse_adjacencies(dex_to_tile, num_states, 
         directions=['t','b','n','s','e','w'], tile_size=2, stride=1):
 
     args = np.arange(tile_size**3).reshape((tile_size, tile_size, tile_size)) # What areas need to be compared in our comparison function
@@ -165,15 +137,25 @@ def collect_reverse_adjacencies(hash_to_num, tile_set, num_colors, num_states,
         rev_adjacencies[d] = np.zeros((num_states, num_states), dtype=bool)
     
     # Detect adjacencies
-    for source in tile_set.keys():
-        for sink in tile_set.keys():
+
+    for i in range(num_states):
+        for j in range(num_states):
 
             for d in range(len(directions)):
-                if compare_3D_hashes(source, sink, t1_comparisons[d], t2_comparisons[d], num_colors):
-                    # State i allows neighboring state j
-                    i = hash_to_num[source]
-                    j = hash_to_num[sink]
+                if compare_tiles(dex_to_tile[i], dex_to_tile[j], t1_comparisons[d], t2_comparisons[d]):
+
                     rev_adjacencies[directions[d]][i, j] = 1
+
+
+    # for source in tile_set.keys():
+    #     for sink in tile_set.keys():
+
+    #         for d in range(len(directions)):
+    #             if compare_3D_hashes(source, sink, t1_comparisons[d], t2_comparisons[d], num_colors):
+    #                 # State i allows neighboring state j
+    #                 i = hash_to_num[source]
+    #                 j = hash_to_num[sink]
+    #                 rev_adjacencies[directions[d]][i, j] = 1
 
     return rev_adjacencies
 
