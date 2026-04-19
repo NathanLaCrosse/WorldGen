@@ -22,9 +22,10 @@ png_folder = "Generation_3D/images_3D/mount"
 rows = 30
 cols = 30
 Surface_start = 9
+gen_size = (15,30,30)
 
 # Main 3D WFC handler
-image = new_3D_main(grid_size, tile_size, stride, num_images, png_folder, png_name, rotation, chunks, rows, cols, Surface_start)
+image = new_3D_main(gen_size, tile_size, stride, num_images, png_folder, png_name, rotation, chunks, rows, cols, Surface_start)
 
 # 2-D WFC
 # RunPNG(
