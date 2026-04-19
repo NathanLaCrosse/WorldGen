@@ -6,14 +6,19 @@ from ursina import *
 from Generation_3D.Mesh_3D import create_voxel_mesh
 
 # Convert a series of images into a 3D tilemap
-def construct_3D_tilemap(layers=5, rows=5, cols=5, png_folder="Generation_3D/images_3D/grass", png_names="grass"):
+def construct_3D_tilemap(layers=5, rows=5, cols=5, png_folder="Generation_3D/images_3D/grass", png_names="grass", surface_start=0):
     tilemap = np.zeros((layers, rows, cols))
     
     # Two hashtables for translating between color & index space
     idx_to_color = {}
     color_to_idx = {}
 
-    dex = 0
+    color_to_idx[(0,0,0)] = 0
+    idx_to_color[0] = (0,0,0)
+    color_to_idx[(0,0,0)] = 1
+    idx_to_color[1] = (0,0,0)
+
+    dex = 2
     for i in range(layers):
         png_name = f"{png_names}{i}"
 
@@ -24,7 +29,14 @@ def construct_3D_tilemap(layers=5, rows=5, cols=5, png_folder="Generation_3D/ima
         for j, k in np.ndindex((pixel_ar.shape[0], pixel_ar.shape[1])):
             # Convert the slice of the image's color channels to a tuple index
             color_tuple = tuple(pixel_ar[j, k, :].tolist())
-
+            
+            if color_tuple == (0, 0, 0):
+                if i < surface_start:
+                    tilemap[i, j, k] = 1  # Underground air
+                else:
+                    tilemap[i, j, k] = 0  # Above-surface air
+                continue
+            
             if color_tuple not in color_to_idx.keys():
                 color_to_idx[color_tuple] = dex
                 idx_to_color[dex] = color_tuple
@@ -38,6 +50,13 @@ def construct_3D_tilemap(layers=5, rows=5, cols=5, png_folder="Generation_3D/ima
     # idx_to_color - hash table for mapping an int into a tuple of colors
     # color_to_idx - hash table for mapping a tuple of colors into an int
     return tilemap, idx_to_color, color_to_idx
+
+def rotate(tile, times):
+    rotated = tile.copy()
+    for _ in range(times):
+        # np.rot90 on axes (1,2) rotates in the horizontal plane (X-Z)
+        rotated = np.rot90(rotated, k=1, axes=(1, 2))
+    return rotated
 
 # Collect cubes from the sample tilemap
 def collect_3D_tiles(tilemap, tile_size, rotation=False):
@@ -55,16 +74,21 @@ def collect_3D_tiles(tilemap, tile_size, rotation=False):
         for j in range(height - tile_size + 1):
             for k in range(width - tile_size + 1):
                 tile = tilemap[i:i+tile_size, j:j+tile_size, k:k+tile_size]
+                
+                rotations = [tile]
+                if rotation:
+                    rotations = [rotate(tile, r) for r in range(4)]
 
-                tile_tuple = tuple(tile.flatten().tolist()) # For comparisons - collapse to tuple
+                for rotated in rotations:
+                    tile_tuple = tuple(rotated.flatten().tolist()) # For comparisons - collapse to tuple
 
-                if tile_tuple not in tile_table.keys():
-                    tiles.append(tile.copy()) # Add slice to tiles
-                    weights.append(1)
-                    tile_table[tile_tuple] = dex
-                    dex += 1
-                else:
-                    weights[tile_table[tile_tuple]] += 1
+                    if tile_tuple not in tile_table.keys():
+                        tiles.append(rotated.copy()) # Add slice to tiles
+                        weights.append(1)
+                        tile_table[tile_tuple] = dex
+                        dex += 1
+                    else:
+                        weights[tile_table[tile_tuple]] += 1
     
     # Returns:
     # tiles - list of all tiles found in the tilemap, stored as 3d numpy arrays
@@ -74,7 +98,6 @@ def collect_3D_tiles(tilemap, tile_size, rotation=False):
 
 def hash_3D_tile(tile, num_colors):
     flat = tile.flatten()
-
     hash = 0
     for i in range(len(flat)):
         hash += flat[i] * num_colors**i
@@ -157,7 +180,7 @@ def collect_reverse_adjacencies(hash_to_num, tile_set, num_colors, num_states,
 if __name__ == "__main__":
     tilemap, idx_to_color, color_to_idx = construct_3D_tilemap(5,8,8,png_folder="Generation_3D/images_3D/gimmickgrass", png_names="richgrass")
 
-    tiles, weights = collect_3D_tiles(tilemap, 2)
+    tiles, weights = collect_3D_tiles(tilemap, 2, True)
 
     # num_colors = len(idx_to_color.keys())
     # num_states = len(tiles)
@@ -165,7 +188,7 @@ if __name__ == "__main__":
     # hash_to_num, num_to_hash, tile_set = build_3D_tilemap_hashes(tiles, weights, num_colors)
     # rev_adj = collect_reverse_adjacencies(hash_to_num, tile_set, num_colors, num_states)
 
-    create_voxel_mesh(tilemap.tolist(), idx_to_color)
+    image = create_voxel_mesh(tilemap.tolist(), idx_to_color)
 
 
 
