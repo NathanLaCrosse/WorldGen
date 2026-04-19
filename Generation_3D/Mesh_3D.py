@@ -72,5 +72,4 @@ def create_voxel_mesh(world_3d, index_to_color_3d):
     mesh = Mesh(vertices=vertices, triangles=triangles, colors=colors, mode='triangle')
     mesh.generate_normals()
 
-    # Entity(model=mesh, double_sided=True)
-    Entity(model=mesh, double_sided=True, shader=lit_with_shadows_shader)
+    return Entity(model=mesh, double_sided=True, shader=lit_with_shadows_shader)
