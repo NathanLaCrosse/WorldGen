@@ -6,8 +6,8 @@ import numpy as np
 # General parms
 grid_size = 15 # output grid size
 tile_size = 2 # For sample tiles
-rotation = True # If we want rotations allowed
-png_name = "mount" # Name of the PNG file in the images folder
+rotation = False # If we want rotations allowed
+png_name = "cityScape" # Name of the PNG file in the images folder
 
 # 2-D only Parms
 wave = True # If true, uses the single grid generation, if false uses the chunk based generation
@@ -16,13 +16,16 @@ chunks = 1 # number of chunks to split the map into for better performance
 
 # Make sure that tile_size = num_images when doing sample only and rotation = false
 # 3-D only parms 
-num_images = 15 # Number of images to use for the WFC, should be between 1 and 7
+num_images = 35 # Number of images to use for the WFC, should be between 1 and 7
 sample_only = True # If true, only creates the sample image, if false creates the WFC output (note: if true, it will not create the WFC output, even if wave is true, since it needs the WFC output to create the sample image)
-png_folder = "Generation_3D/images_3D/mount"
-rows = 30
-cols = 30
-Surface_start = 9
+png_folder = "Generation_3D/images_3D/cityScape"  # Mount is 30x30 image with 15 images. CityScape is 35x35x35
+rows = 35
+cols = 35
+Surface_start = 0 #For caves only
 gen_size = (15,30,30)
+
+# Could work on adding in a function to fix the base layer to the base layer of the WFC
+#fixed_base = False
 
 # Main 3D WFC handler
 image = new_3D_main(gen_size, tile_size, stride, num_images, png_folder, png_name, rotation, chunks, rows, cols, Surface_start)
