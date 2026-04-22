@@ -7,8 +7,71 @@ sys.setrecursionlimit(10**6)
 directions = ['t','b','n','s','e','w']
 dir_steps = [(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,1),(0,0,-1)]
 
+def generate_3D_chunks(gen_size, chunk_size, tile_to_dex, dex_to_tile, weights, num_colors, tile_size=2, stride=1, seeding_presets=None, rev_adj=None, attemps_per_chunk=3):
+    if rev_adj is None:
+        rev_adj = collect_reverse_adjacencies(dex_to_tile, num_states, tile_size=tile_size, stride=stride)
+
+        print("Adjacencies Built!")
+
+    # Calculate dimensions of the cell space inside a chunk
+    space_size = ((chunk_size[0] - tile_size)//stride + 1, (chunk_size[1] - tile_size)//stride + 1, (chunk_size[2] - tile_size)//stride + 1)
+    
+    # intialize full grid in state space, which will later be converted into voxels
+    full_state_space = np.zeros((gen_size[0]*space_size[0], gen_size[1]*space_size[1], gen_size[2]*space_size[2]), dtype=np.uint8)
+
+    for i in range(gen_size[0]):
+        for j in range(gen_size[1]):
+            for k in range(gen_size[2]):
+                presets = []
+                boundary_conditions = []
+
+                # If this is the first chunk, use seeding presets
+                if i == j == k == 0:
+                    presets = seeding_presets
+
+                # If there is a generated chunk to the left, add its boundary conditions
+                # Working in column space
+                if k > 0:
+                    for m,n in np.ndindex((space_size[0],space_size[1])):
+                        boundary_conditions.append(((m,n,0), full_state_space[i*space_size[0]+m, j*space_size[1]+n, k*space_size[2]-1], 'e'))
+                
+                # If there is a generated chunk to the south, add its boundary conditions
+                # Working in row space
+                if j > 0:
+                    for m,n in np.ndindex((space_size[0], space_size[2])):
+                        boundary_conditions.append(((m,0,n), full_state_space[i*space_size[0]+m, j*space_size[1]-1, k*space_size[2]+n], 's'))
+
+                # If there is a generated chunk below, add its boundary conditions
+                # Working in depth space
+                if i > 0:
+                    for m,n in np.ndindex((space_size[1], space_size[2])):
+                        boundary_conditions.append(((0,m,n), full_state_space[i*space_size[0]-1, j*space_size[1]+m, k*space_size[2]+n], 'b'))
+                
+                # Attempt to generate a chunk
+                for l in range(attemps_per_chunk):
+                    state_space, res = generate_3D_fully_recursive(chunk_size, tile_to_dex, dex_to_tile, weights, num_colors, tile_size, stride, presets, 
+                                        rev_adj=rev_adj, return_state_space=True, boundary_conditions=boundary_conditions, print=False)
+
+                    # If successful, leave
+                    if res:
+                        break
+                    elif l == attemps_per_chunk-1:
+                        print("Critical Error! At", i, j, k)
+                
+                # Now that we have our chunk, we can add it to the global state space
+                full_state_space[i*space_size[0]:(i+1)*space_size[0], j*space_size[1]:(j+1)*space_size[1], 
+                                 k*space_size[2]:(k+1)*space_size[2]] = state_space
+                
+                print("Completed Chunk", i, j, k)
+    
+    # After this point, all chunks have been loaded, so we return the space
+    voxel_grid_size = (gen_size[0]*chunk_size[0], gen_size[1]*chunk_size[1], gen_size[2]*chunk_size[2])
+    space = build_grid_from_cell_space(full_state_space, voxel_grid_size, full_state_space.shape, tile_size, num_colors, stride, dex_to_tile)
+    return space
+
+
 # Gensize (int) -> tuple of ints
-def generate_3D_fully_recursive(gen_size, tile_to_dex, dex_to_tile, weights, num_colors, tile_size=2, stride=1, presets=None, rev_adj=None):
+def generate_3D_fully_recursive(gen_size, tile_to_dex, dex_to_tile, weights, num_colors, tile_size=2, stride=1, presets=None, rev_adj=None, return_state_space=False, boundary_conditions=None, print=True):
     assert (gen_size[0] - tile_size) % stride == 0 and (gen_size[1] - tile_size) % stride == 0 and (gen_size[2] - tile_size) % stride == 0, "Incompatible Tile/Stride/Grid_Size Combination"
     
     num_states = len(dex_to_tile.keys())
@@ -16,7 +79,7 @@ def generate_3D_fully_recursive(gen_size, tile_to_dex, dex_to_tile, weights, num
     if rev_adj is None:
         rev_adj = collect_reverse_adjacencies(dex_to_tile, num_states, tile_size=tile_size, stride=stride)
 
-        print("Adjacencies Built!")
+        if print: print("Adjacencies Built!")
 
     # Stuff for sampling from superpositions
     weights = np.array(weights)
@@ -32,27 +95,76 @@ def generate_3D_fully_recursive(gen_size, tile_to_dex, dex_to_tile, weights, num
     # Intialize entropy grid - all the same since equal superposition
     entropy_grid = np.ones((space_size[0], space_size[1], space_size[2]), dtype=np.uint64) * num_states
 
-    collapsed = 0
-    if presets is not None:
-        # If presets are passed in, initialized grid with some states
+    if boundary_conditions is not None:
+        if print: print("Applying Boundary Constraints...")
+
         q = deque()
         m = deque()
-        for pos, state_dex in presets:
-            enqueue(q, pos, state_dex, cell_space, state_space, entropy_grid, rev_adj, space_size, num_states)
-        
-        # Propagate changes
-        propagate_BFS(q, m, cell_space, state_space, entropy_grid, rev_adj, space_size, num_states)
-        collapsed = len(presets)
 
-        print(len(m))
+        res = apply_boundary_constraints(cell_space, state_space, entropy_grid, q, m, rev_adj, space_size, num_states, boundary_conditions)
+
+    collapsed = 0
+    one_done = True
+    if presets is not None:
+        for pos, state_dex in presets:
+            # If presets are passed in, initialized grid with some states
+            q = deque()
+            m = deque()
+
+            enqueue(q, pos, state_dex, cell_space, state_space, entropy_grid, rev_adj, space_size, num_states)
+            
+            # Propagate changes
+            propagate_BFS(q, m, cell_space, state_space, entropy_grid, rev_adj, space_size, num_states)
+
+            if one_done:
+                if print: print("One-Preset Propagated!")
+                one_done = False
+        
+        collapsed = len(presets)
+        if print: print("Preset-Tiles Finished!")
+    
+    if print: print("Starting Generation...")
 
     # Call recursive method to solve for the entire space
     res = recursive_generation(cell_space, state_space, entropy_grid, args, weights, dex_to_tile, tile_to_dex, rev_adj, num_states, collapsed, space_size)
 
-    if res:
-        return build_grid_from_cell_space(state_space, gen_size, space_size, tile_size, num_colors, stride, dex_to_tile), res
+    if not return_state_space:
+        space = np.zeros(gen_size)
+
+        if res:
+            space = build_grid_from_cell_space(state_space, gen_size, space_size, tile_size, num_colors, stride, dex_to_tile)
+
+        return space, res
     else:
-        return np.zeros(gen_size), res
+        return state_space, res
+    
+
+def apply_boundary_constraints(cell_space, state_space, entropy_grid, queue, modifications, rev_adj, space_size, 
+                               num_states, boundary_conditions):
+        
+    for (d,r,c), neighbor_state, direction in boundary_conditions:
+        if state_space[d,r,c] != -1:
+            continue # Already collapsed
+
+        old_cell = cell_space[d, r, c].copy()
+        old_entropy = entropy_grid[d, r, c]
+
+        # Apply constraint from known neighbor
+        allowed = rev_adj[direction][neighbor_state]
+        cell_space[d, r, c] &= allowed
+        entropy_grid[d, r, c] = cell_space[d, r, c].sum()
+
+        if entropy_grid[d, r, c].sum() == 0:
+            return False # Reached invalid state
+
+        # Track modification for backtracking
+        modifications.append((d, r, c, old_cell, old_entropy))
+
+        # Add changes to propagation queue
+        enqueue(queue, (d, r, c), -1, cell_space, state_space, entropy_grid, rev_adj, space_size, num_states)
+    
+    # Once boundary conditions have been enqueued, perform BFS
+    return propagate_BFS(queue, modifications, cell_space, state_space, entropy_grid, rev_adj, space_size, num_states)
 
 def recursive_generation(cell_space, state_space, entropy_grid, args, weights, dex_to_tile, tile_to_dex, rev_adj, 
                          num_states, collapse_count, space_size):
@@ -196,19 +308,23 @@ def build_grid_from_cell_space(state_space, gen_size, space_size, tile_size, num
     return grid
 
 if __name__ == "__main__":
-    gen_size = (6,8,8)
-    # gen_size = (2,2,2)
+    gen_size = (3,3,3)
+    chunk_size = (6,6,6)
     tile_size = 2
     stride = 1
 
     mode = "load"
-    load_tilemap = True
+    load_tilemap = False
+    r = True
+
+    png_folder = "Generation_3D/images_3D/SmolMountain"
+    png_names = "mountain"
 
     rev_adj = None
     if mode == "save":
-        tilemap, idx_to_color, color_to_idx = construct_3D_tilemap(7,32,32,png_folder="Generation_3D/images_3D/terraintest", png_names="terrain")
+        tilemap, idx_to_color, color_to_idx = construct_3D_tilemap(19,16,16,png_folder=png_folder, png_names=png_names)
 
-        tiles, weights = collect_3D_tiles(tilemap, tile_size, rotation=True)
+        tiles, weights = collect_3D_tiles(tilemap, tile_size, rotation=r)
         print("Tiles Collected!")
 
         num_colors = len(idx_to_color.keys())
@@ -216,6 +332,8 @@ if __name__ == "__main__":
 
         tile_to_dex, dex_to_tile = build_3D_tile_hashes(tiles)
         print("Hash Tables Completed!")
+
+        print("Num States:", num_states)
 
         rev_adj = collect_reverse_adjacencies(dex_to_tile, num_states, tile_size=tile_size, stride=stride)
         print("Adjacencies Built!")
@@ -231,22 +349,24 @@ if __name__ == "__main__":
         num_colors = len(idx_to_color.keys())
         num_states = len(tiles)
 
+        print("loaded!")
+
     if not load_tilemap:
         # Set the first layer to stone
         presets = []
-        space_size = ((gen_size[0] - tile_size)//stride + 1, (gen_size[1] - tile_size)//stride + 1, (gen_size[2] - tile_size)//stride + 1)
+        space_size = ((chunk_size[0] - tile_size)//stride + 1, (chunk_size[1] - tile_size)//stride + 1, (chunk_size[2] - tile_size)//stride + 1)
         for i in range(space_size[1]//2):
             for j in range(space_size[2]//2):
                 presets.append(((0, i, j), 0))
 
-        space, res = generate_3D_fully_recursive(gen_size, tile_to_dex, dex_to_tile, weights, num_colors, tile_size, stride, presets, rev_adj=rev_adj)
-        print("Was space generated correctly?", res)
+        # space, res = generate_3D_fully_recursive(gen_size, tile_to_dex, dex_to_tile, weights, num_colors, tile_size, stride, presets, rev_adj=rev_adj)
+        # print("Was space generated correctly?", res)
+        space = generate_3D_chunks(gen_size, chunk_size, tile_to_dex, dex_to_tile, weights, num_colors, 
+                tile_size, stride, seeding_presets=presets, rev_adj=rev_adj, attemps_per_chunk=100)
 
-        if mode == "save" and res:
-            with open("Saved_Data/space.pkl", "wb") as file:
-                pickle.dump(space, file)
+        with open("Saved_Data/space.pkl", "wb") as file:
+            pickle.dump(space, file)
     else:
-        space_size = ((gen_size[0] - tile_size)//stride + 1, (gen_size[1] - tile_size)//stride + 1, (gen_size[2] - tile_size)//stride + 1)
         with open("Saved_Data/space.pkl", "rb") as file:
             space = pickle.load(file)
         
@@ -255,7 +375,9 @@ if __name__ == "__main__":
     # space = space[::-1]
 
     # create_voxel_mesh(tiles[0], idx_to_color)
+    print("Starting Mesh!")
     create_voxel_mesh(space.tolist(), idx_to_color)
+    print("Ending Mesh!")
 
     chunks = 1
     grid_size = gen_size[0]

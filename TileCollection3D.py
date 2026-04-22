@@ -146,17 +146,6 @@ def collect_reverse_adjacencies(dex_to_tile, num_states,
 
                     rev_adjacencies[directions[d]][i, j] = 1
 
-
-    # for source in tile_set.keys():
-    #     for sink in tile_set.keys():
-
-    #         for d in range(len(directions)):
-    #             if compare_3D_hashes(source, sink, t1_comparisons[d], t2_comparisons[d], num_colors):
-    #                 # State i allows neighboring state j
-    #                 i = hash_to_num[source]
-    #                 j = hash_to_num[sink]
-    #                 rev_adjacencies[directions[d]][i, j] = 1
-
     return rev_adjacencies
 
 if __name__ == "__main__":
