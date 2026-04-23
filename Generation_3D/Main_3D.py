@@ -70,9 +70,9 @@ def new_3D_main(grid_size, tile_size, stride, num_layers, png_folder, png_names,
     num_colors = len(idx_to_color.keys())
     num_states = len(tiles)
 
-    hash_to_num, num_to_hash, tile_set = build_3D_tilemap_hashes(tiles, weights, num_colors)
+    hash_to_num, num_to_hash = build_3D_tile_hashes(tiles)
 
-    space, res = generate_3D_fully_recursive(grid_size, hash_to_num, num_to_hash, tile_set, num_colors, tile_size, stride)
+    space, res = generate_3D_fully_recursive(grid_size, hash_to_num, num_to_hash,weights, num_colors, tile_size, stride)
 
     #space = space[::-1]
 
