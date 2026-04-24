@@ -5,7 +5,7 @@ import numpy as np
 
 
 # 3-D only parms 
-gen_size = (25,25,25)
+gen_size = (15,20,20)
 stride = 1 
 chunks = 1 # number of chunks to split the map into for better performance
 
@@ -14,15 +14,15 @@ chunks = 1 # number of chunks to split the map into for better performance
 #3-D parms  Num images,     png foler,                    png name, rotations, tile_size, row, cols, surface_start, gen_size, preset
 #
 # -------------------------------------------------------------------------------------------------------------------------------------
-cityScape_parms = (33, "Generation_3D/images_3D/cityScape","cityScape",False,      2,      35, 35,         1,       gen_size, True)
+cityScape_parms = (33, "Generation_3D/images_3D/cityScape","cityScape",False,      2,      35, 35,         1,       gen_size, False)
 mount_parms = (    15,     "Generation_3D/images_3D/mount","mount"    ,False,      2,      30, 30,         9,       gen_size, True)
-grass = (          5,      "Generation_3D/images_3D/mount","mount"    ,True ,      2,      5,  5,          0,       gen_size, False)
-cave = (           7,      "Generation_3D/images_3D/mount","mount"    ,False,      2,      7,  7,          0,       gen_size, False)
-richgrass = (      8,      "Generation_3D/images_3D/mount","mount"    ,True ,      2,      8,  8,          0,       gen_size, False)
+grass = (          5,      "Generation_3D/images_3D/grass","grass"    ,True ,      2,      5,  5,          0,       gen_size, False)
+cave = (           7,      "Generation_3D/images_3D/cave" ,"cave"     ,False,      2,      7,  7,          0,       gen_size, False)
+richgrass = (      8, "Generation_3D/images_3D/richgrass","richgrass" ,True ,      2,      8,  8,          0,       gen_size, False)
 
 
 # Set to what image you want to load
-parms = mount_parms
+parms = cityScape_parms
 
 # Main 3D WFC handler
 image = new_3D_main(parms[8], parms[4], stride, parms[0], parms[1], parms[2], parms[3], chunks, parms[5], parms[6], parms[7], parms[9])
