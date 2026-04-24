@@ -12,7 +12,6 @@ def neighbor_check(world, x, y ,z):
         return True
 
     return world[z][y][x] == 0  # adjust if your "empty" value differs
-    return
 
 def create_voxel_mesh(world_3d, index_to_color_3d):
     vertices = []
