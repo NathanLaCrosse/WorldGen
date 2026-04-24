@@ -58,29 +58,37 @@ def ThreeD_Main(tile_size, rotation = False, png_folder="building",png_names="bu
         # To print the sample image
         image = create_voxel_mesh(three_dimensional, None)
 
-def new_3D_main(grid_size, tile_size, stride, num_layers, png_folder, png_names, rotations, chunks, length, width, surface_start):
+def new_3D_main(grid_size, tile_size, stride, num_layers, png_folder, png_names, rotations, chunks, length, width, surface_start, preset):
     grid_size = grid_size
     tile_size = tile_size
     stride = stride
+    chunks = chunks
 
     tilemap, idx_to_color, color_to_idx = construct_3D_tilemap(num_layers,length,width,png_folder, png_names, surface_start)
-
+    print("Image loaded\n")
     tiles, weights = collect_3D_tiles(tilemap, tile_size, rotations)
+    print("tiles collected\n")
 
     num_colors = len(idx_to_color.keys())
     num_states = len(tiles)
+    
+    presets = None
+    if preset:
+        presets = []
+        space_size = ((grid_size[0] - tile_size)//stride + 1, (grid_size[1] - tile_size)//stride + 1, (grid_size[2] - tile_size)//stride + 1)
+        presets = [((0, 0, 0), 5)]
 
     hash_to_num, num_to_hash = build_3D_tile_hashes(tiles)
+    print("tile hash done\n")
 
-    space, res = generate_3D_fully_recursive(grid_size, hash_to_num, num_to_hash,weights, num_colors, tile_size, stride)
+    space, res = generate_3D_fully_recursive(grid_size, hash_to_num, num_to_hash,weights, num_colors, tile_size, stride,presets=presets)
+    print("WFC done\n")
 
     #space = space[::-1]
 
     # create_voxel_mesh(tilemap.tolist(), idx_to_color)
     image = create_voxel_mesh(space.tolist(), idx_to_color)
-    # print(res)
-
-    chunks = chunks
+    print("voxel mesh done\n")
 
     return image
     
