@@ -71,7 +71,7 @@ def generate_3D_chunks(gen_size, chunk_size, tile_to_dex, dex_to_tile, weights, 
 
 
 # Gensize (int) -> tuple of ints
-def generate_3D_fully_recursive(gen_size, tile_to_dex, dex_to_tile, weights, num_colors, tile_size=2, stride=1, presets=None, rev_adj=None, return_state_space=False, boundary_conditions=None, print=True):
+def generate_3D_fully_recursive(gen_size, tile_to_dex, dex_to_tile, weights, num_colors, tile_size=2, stride=1, presets=None, rev_adj=None, return_state_space=False, boundary_conditions=None, prints=True):
     assert (gen_size[0] - tile_size) % stride == 0 and (gen_size[1] - tile_size) % stride == 0 and (gen_size[2] - tile_size) % stride == 0, "Incompatible Tile/Stride/Grid_Size Combination"
     
     num_states = len(dex_to_tile.keys())
@@ -79,7 +79,7 @@ def generate_3D_fully_recursive(gen_size, tile_to_dex, dex_to_tile, weights, num
     if rev_adj is None:
         rev_adj = collect_reverse_adjacencies(dex_to_tile, num_states, tile_size=tile_size, stride=stride)
 
-        if print: print("Adjacencies Built!")
+        if prints: print("Adjacencies Built!")
 
     # Stuff for sampling from superpositions
     weights = np.array(weights)
