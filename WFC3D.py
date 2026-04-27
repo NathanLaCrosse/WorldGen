@@ -7,7 +7,7 @@ sys.setrecursionlimit(10**6)
 directions = ['t','b','n','s','e','w']
 dir_steps = [(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,1),(0,0,-1)]
 
-def generate_3D_chunks(gen_size, chunk_size, tile_to_dex, dex_to_tile, weights, num_colors, tile_size=2, stride=1, seeding_presets=None, rev_adj=None, attemps_per_chunk=3):
+def generate_3D_chunks(gen_size, chunk_size, tile_to_dex, dex_to_tile, weights, num_colors, tile_size=2, stride=1, seeding_presets=None, rev_adj=None, attemps_per_chunk=3, seed_bottom=False):
     if rev_adj is None:
         rev_adj = collect_reverse_adjacencies(dex_to_tile, num_states, tile_size=tile_size, stride=stride)
 
@@ -27,6 +27,8 @@ def generate_3D_chunks(gen_size, chunk_size, tile_to_dex, dex_to_tile, weights, 
 
                 # If this is the first chunk, use seeding presets
                 if i == j == k == 0:
+                    presets = seeding_presets
+                elif i == 0 and seed_bottom:
                     presets = seeding_presets
 
                 # If there is a generated chunk to the left, add its boundary conditions
@@ -50,13 +52,14 @@ def generate_3D_chunks(gen_size, chunk_size, tile_to_dex, dex_to_tile, weights, 
                 # Attempt to generate a chunk
                 for l in range(attemps_per_chunk):
                     state_space, res = generate_3D_fully_recursive(chunk_size, tile_to_dex, dex_to_tile, weights, num_colors, tile_size, stride, presets, 
-                                        rev_adj=rev_adj, return_state_space=True, boundary_conditions=boundary_conditions, print=False)
+                                        rev_adj=rev_adj, return_state_space=True, boundary_conditions=boundary_conditions, prints=False)
 
                     # If successful, leave
                     if res:
                         break
                     elif l == attemps_per_chunk-1:
                         print("Critical Error! At", i, j, k)
+                        return np.zeros((gen_size[0]*chunk_size[0],gen_size[1]*chunk_size[1],gen_size[2]*chunk_size[2])), False
                 
                 # Now that we have our chunk, we can add it to the global state space
                 full_state_space[i*space_size[0]:(i+1)*space_size[0], j*space_size[1]:(j+1)*space_size[1], 
@@ -67,7 +70,7 @@ def generate_3D_chunks(gen_size, chunk_size, tile_to_dex, dex_to_tile, weights, 
     # After this point, all chunks have been loaded, so we return the space
     voxel_grid_size = (gen_size[0]*chunk_size[0], gen_size[1]*chunk_size[1], gen_size[2]*chunk_size[2])
     space = build_grid_from_cell_space(full_state_space, voxel_grid_size, full_state_space.shape, tile_size, num_colors, stride, dex_to_tile)
-    return space
+    return space, True
 
 
 # Gensize (int) -> tuple of ints
@@ -96,7 +99,7 @@ def generate_3D_fully_recursive(gen_size, tile_to_dex, dex_to_tile, weights, num
     entropy_grid = np.ones((space_size[0], space_size[1], space_size[2]), dtype=np.uint64) * num_states
 
     if boundary_conditions is not None:
-        if print: print("Applying Boundary Constraints...")
+        if prints: print("Applying Boundary Constraints...")
 
         q = deque()
         m = deque()
@@ -117,13 +120,13 @@ def generate_3D_fully_recursive(gen_size, tile_to_dex, dex_to_tile, weights, num
             propagate_BFS(q, m, cell_space, state_space, entropy_grid, rev_adj, space_size, num_states)
 
             if one_done:
-                if print: print("One-Preset Propagated!")
+                if prints: print("One-Preset Propagated!")
                 one_done = False
         
         collapsed = len(presets)
-        if print: print("Preset-Tiles Finished!")
+        if prints: print("Preset-Tiles Finished!")
     
-    if print: print("Starting Generation...")
+    if prints: print("Starting Generation...")
 
     # Call recursive method to solve for the entire space
     res = recursive_generation(cell_space, state_space, entropy_grid, args, weights, dex_to_tile, tile_to_dex, rev_adj, num_states, collapsed, space_size)
@@ -308,8 +311,8 @@ def build_grid_from_cell_space(state_space, gen_size, space_size, tile_size, num
     return grid
 
 if __name__ == "__main__":
-    gen_size = (3,3,3)
-    chunk_size = (6,6,6)
+    gen_size = (2,4,4)
+    chunk_size = (4,10,10)
     tile_size = 2
     stride = 1
 
@@ -317,12 +320,16 @@ if __name__ == "__main__":
     load_tilemap = False
     r = True
 
-    png_folder = "Generation_3D/images_3D/SmolMountain"
-    png_names = "mountain"
+    png_folder = "Generation_3D/images_3D/AnotherSimplerMountain"
+    png_names = "amount"
+    png_depth = 14
+    png_rows, png_cols = 32, 32
+
+    space_name = "diaorama3"
 
     rev_adj = None
     if mode == "save":
-        tilemap, idx_to_color, color_to_idx = construct_3D_tilemap(19,16,16,png_folder=png_folder, png_names=png_names)
+        tilemap, idx_to_color, color_to_idx = construct_3D_tilemap(png_depth,png_rows,png_cols,png_folder=png_folder, png_names=png_names)
 
         tiles, weights = collect_3D_tiles(tilemap, tile_size, rotation=r)
         print("Tiles Collected!")
@@ -355,19 +362,23 @@ if __name__ == "__main__":
         # Set the first layer to stone
         presets = []
         space_size = ((chunk_size[0] - tile_size)//stride + 1, (chunk_size[1] - tile_size)//stride + 1, (chunk_size[2] - tile_size)//stride + 1)
-        for i in range(space_size[1]//2):
-            for j in range(space_size[2]//2):
+        for i in range(space_size[1]):
+            for j in range(space_size[2]):
                 presets.append(((0, i, j), 0))
 
         # space, res = generate_3D_fully_recursive(gen_size, tile_to_dex, dex_to_tile, weights, num_colors, tile_size, stride, presets, rev_adj=rev_adj)
         # print("Was space generated correctly?", res)
-        space = generate_3D_chunks(gen_size, chunk_size, tile_to_dex, dex_to_tile, weights, num_colors, 
-                tile_size, stride, seeding_presets=presets, rev_adj=rev_adj, attemps_per_chunk=100)
+        while True:
+            space, res = generate_3D_chunks(gen_size, chunk_size, tile_to_dex, dex_to_tile, weights, num_colors, 
+                tile_size, stride, seeding_presets=presets, rev_adj=rev_adj, attemps_per_chunk=3, seed_bottom=False)
+            
+            if res:
+                break
 
-        with open("Saved_Data/space.pkl", "wb") as file:
+        with open(f"Saved_Data/{space_name}.pkl", "wb") as file:
             pickle.dump(space, file)
     else:
-        with open("Saved_Data/space.pkl", "rb") as file:
+        with open(f"Saved_Data/{space_name}.pkl", "rb") as file:
             space = pickle.load(file)
         
         
