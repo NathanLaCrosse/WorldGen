@@ -17,7 +17,8 @@ def generate_3D_chunks(gen_size, chunk_size, tile_to_dex, dex_to_tile, weights, 
     space_size = ((chunk_size[0] - tile_size)//stride + 1, (chunk_size[1] - tile_size)//stride + 1, (chunk_size[2] - tile_size)//stride + 1)
     
     # intialize full grid in state space, which will later be converted into voxels
-    full_state_space = np.zeros((gen_size[0]*space_size[0], gen_size[1]*space_size[1], gen_size[2]*space_size[2]), dtype=np.uint8)
+    full_state_space = -1 * np.ones((gen_size[0]*space_size[0], gen_size[1]*space_size[1], gen_size[2]*space_size[2]), dtype=np.int64)
+    # full_state_space = np.zeros((gen_size[0]*space_size[0], gen_size[1]*space_size[1], gen_size[2]*space_size[2]), dtype=np.uint8)
 
     for i in range(gen_size[0]):
         for j in range(gen_size[1]):
@@ -65,8 +66,10 @@ def generate_3D_chunks(gen_size, chunk_size, tile_to_dex, dex_to_tile, weights, 
                 full_state_space[i*space_size[0]:(i+1)*space_size[0], j*space_size[1]:(j+1)*space_size[1], 
                                  k*space_size[2]:(k+1)*space_size[2]] = state_space
                 
+                # full_state_space = state_space
+                
                 print("Completed Chunk", i, j, k)
-    
+
     # After this point, all chunks have been loaded, so we return the space
     voxel_grid_size = (gen_size[0]*chunk_size[0], gen_size[1]*chunk_size[1], gen_size[2]*chunk_size[2])
     space = build_grid_from_cell_space(full_state_space, voxel_grid_size, full_state_space.shape, tile_size, num_colors, stride, dex_to_tile)
@@ -183,7 +186,7 @@ def recursive_generation(cell_space, state_space, entropy_grid, args, weights, d
     depth, row, col = np.unravel_index(min_idx, entropy_grid.shape)
 
     original_superposition = cell_space[depth, row, col].copy()
-    current_superposition = cell_space[depth, row, col]
+    current_superposition = cell_space[depth, row, col].copy()
 
     while cell_space[depth, row, col].any() > 0:
         queue = deque()
@@ -222,7 +225,7 @@ def recursive_generation(cell_space, state_space, entropy_grid, args, weights, d
         mask = np.ones_like(current_superposition)
         mask[index] = 0
         cell_space[depth, row, col] = current_superposition & mask
-        current_superposition = cell_space[depth, row, col]
+        current_superposition = cell_space[depth, row, col].copy()
         state_space[depth, row, col] = -1
     
     # There are no possible states that we choose - all end up with an invalid grid
@@ -251,18 +254,21 @@ def enqueue(queue, pos, state_dex, cell_space, state_space, entropy_grid, rev_ad
         
         neighbor_pos = (pos[0] + step[0], pos[1] + step[1], pos[2] + step[2])
 
-        adj = build_allowed_superposition(cell_space, rev_adj, pos, neighbor_pos, directions[i])
-        queue.append((neighbor_pos[0], neighbor_pos[1], neighbor_pos[2], adj))
+        # adj = build_allowed_superposition(cell_space, rev_adj, pos, neighbor_pos, directions[i])
+        # queue.append((neighbor_pos[0], neighbor_pos[1], neighbor_pos[2], adj))
+        queue.append((neighbor_pos, pos, directions[i]))
 
 def propagate_BFS(queue, modifications, cell_space, state_space, entropy_grid, rev_adj, space_size, num_states):
     # Loop until queue is empty or we finish early
     while queue:
-        qd, qr, qc, adj = queue.popleft()
+        # qd, qr, qc, adj = queue.popleft()
+        neighbor_pos, source_pos, direction = queue.popleft()
+        qd, qr, qc = neighbor_pos
 
         if qd < 0 or qd > space_size[0]-1 or qr < 0 or qr > space_size[1]-1 or qc < 0 or qc > space_size[2]-1:
             continue  # Skip if out-of-bounds
-        elif state_space[qd, qr, qc] != -1:
-            continue  # Skip if already collapsed
+
+        adj = build_allowed_superposition(cell_space, rev_adj, source_pos, neighbor_pos, direction)
 
         # update based on given adjacencies
         old_cell = cell_space[qd, qr, qc].copy()
@@ -306,29 +312,41 @@ def build_grid_from_cell_space(state_space, gen_size, space_size, tile_size, num
                 d = i*stride
                 r = j*stride
                 c = k*stride
+
                 grid[d:d+tile_size, r:r+tile_size, c:c+tile_size] = dex_to_tile[state_space[i,j,k]]
 
     return grid
 
 if __name__ == "__main__":
+    # Generation settings
     gen_size = (2,4,4)
-    chunk_size = (4,10,10)
+    chunk_size = (8,8,8)
     tile_size = 2
     stride = 1
 
-    mode = "load"
-    load_tilemap = False
-    r = True
+    # Loading settings are as follows:
+    #          load_adj, load_tilemap, rotate, folder_name, file_prefix, depth, rows, cols, save_name
+    # settings = (False, True, True, "AnotherMountain", "amount", 14, 32, 32, "diaorama2")
+    # settings = (False, True, True, "AnotherMountain", "amount", 14, 32, 32, "diaorama1")
+    # settings = (False, True, True, "SmolMountain", "mountain", 19, 32, 32, "diaorama3") # Fastest running example
+    # settings = (False, True, True, "OceanMountain3d", "omount", 9, 48, 48, "diaorama4")
+    # settings = (False, False, True, "OceanMountain3d", "omount", 9, 48, 48, "diaorama5")
+    # settings = (False, True, True, "AnotherOceanMountain", "omount", 9, 32, 32, "diaorama6")
+    # settings = (False, True, True, "AnotherOceanMountain", "omount", 9, 32, 32, "diaorama7") # Nice mini diaorama
+    # settings = (False, True, True, "AnotherOceanMountain", "omount", 9, 32, 32, "diaorama8") # Another nice small one
+    settings = (True, False, True, "AnotherOceanMountain", "omount", 9, 32, 32, "diaorama9")
 
-    png_folder = "Generation_3D/images_3D/AnotherSimplerMountain"
-    png_names = "amount"
-    png_depth = 14
-    png_rows, png_cols = 32, 32
+    load_adjacences, load_tilemap, r, png_folder, png_names, png_depth, png_rows, png_cols, space_name = settings
 
-    space_name = "diaorama3"
+    png_folder = "Generation_3D/images_3D/" + png_folder
+
+    # Overrides
+    # load_adjacences = True
+    # load_tilemap = True
+    # r = True
 
     rev_adj = None
-    if mode == "save":
+    if not load_adjacences:
         tilemap, idx_to_color, color_to_idx = construct_3D_tilemap(png_depth,png_rows,png_cols,png_folder=png_folder, png_names=png_names)
 
         tiles, weights = collect_3D_tiles(tilemap, tile_size, rotation=r)
@@ -362,12 +380,13 @@ if __name__ == "__main__":
         # Set the first layer to stone
         presets = []
         space_size = ((chunk_size[0] - tile_size)//stride + 1, (chunk_size[1] - tile_size)//stride + 1, (chunk_size[2] - tile_size)//stride + 1)
-        for i in range(space_size[1]):
-            for j in range(space_size[2]):
+        # for i in range(space_size[1]):
+        #     for j in range(space_size[2]):
+        #         presets.append(((0, i, j), 0))
+        for i in range(1):
+            for j in range(1):
                 presets.append(((0, i, j), 0))
 
-        # space, res = generate_3D_fully_recursive(gen_size, tile_to_dex, dex_to_tile, weights, num_colors, tile_size, stride, presets, rev_adj=rev_adj)
-        # print("Was space generated correctly?", res)
         while True:
             space, res = generate_3D_chunks(gen_size, chunk_size, tile_to_dex, dex_to_tile, weights, num_colors, 
                 tile_size, stride, seeding_presets=presets, rev_adj=rev_adj, attemps_per_chunk=3, seed_bottom=False)
@@ -380,8 +399,6 @@ if __name__ == "__main__":
     else:
         with open(f"Saved_Data/{space_name}.pkl", "rb") as file:
             space = pickle.load(file)
-        
-        
 
     # space = space[::-1]
 
