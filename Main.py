@@ -1,6 +1,7 @@
 from TileCollection import *
 from collections import deque
 import sys
+from PIL import Image
 
 from PNGConvert.ImagePNG import imageLoad
 from PNGConvert.WaveFunc import tileToColor
@@ -10,7 +11,7 @@ import matplotlib.pyplot as plt
 sys.setrecursionlimit(10**6)
 
 if __name__ == '__main__':
-    gen_size = 65
+    gen_size = 101
     tile_size = 3
     stride = 2
 
@@ -48,6 +49,9 @@ if __name__ == '__main__':
         im[i,j] = np.array(color_tuple)
 
     print(result)
+
+    save = Image.fromarray(im)
+    save.save("StridedImage.png")
 
     plt.imshow(im)
     plt.show()
